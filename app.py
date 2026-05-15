@@ -563,14 +563,17 @@ class OffsideApp:
 
                 x1, y1, x2, y2 = det["bbox"]
 
-                color = (
-                    (0, 255, 255)
-                    if i in self.selected_bboxes
-                    else (0, 255, 0)
-                )
+                # RIGHT CLICK SELECTION = BLUE (priority)
+                if i in self.selected_bboxes:
+                    color = (255, 0, 0)
 
-                if self.selected_box == i:
+                # CURRENTLY EDITING = YELLOW
+                elif self.selected_box == i:
                     color = (0, 255, 255)
+
+                # NORMAL
+                else:
+                    color = (0, 255, 0)
 
                 cv2.rectangle(img, (x1, y1), (x2, y2), color, 2)
 

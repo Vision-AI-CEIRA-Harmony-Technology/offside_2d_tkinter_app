@@ -484,6 +484,7 @@ def on_mouse_drag(app, e):
                 y
             )
         set_box(app, app.selected_box, new_box)
+        app.selected_bboxes.add(app.selected_box)
     elif app.drawing:
         app.temp_box = (
             app.start_x,
@@ -623,6 +624,7 @@ def on_mouse_up(app, e):
         app.state["detections"].append({
             "bbox": box
         })
+        app.selected_bboxes.add(len(app.state["detections"]) - 1)
 
         app.drawing = False
         app.temp_box = None
