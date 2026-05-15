@@ -403,7 +403,12 @@ class OffsideJudge:
             is_offside = adv_proj < offside_proj
 
             # visualization/debug
-            det["offside_keypoint"] = selected_kp
+            # preserve manually moved attacker kp
+            if manual_kp is not None:
+                det["offside_keypoint"] = manual_kp
+            else:
+                det["offside_keypoint"] = selected_kp
+
             det["offside_proj_point"] = attacker_ground_point
 
             judgements.append(
