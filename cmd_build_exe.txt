@@ -1,0 +1,22 @@
+pyinstaller ^
+--onedir ^
+--windowed ^
+--paths=. ^
+--collect-submodules offside_logique ^
+--icon=assets/logo2.ico ^
+--add-data "assets;assets" ^
+--add-data "weights;weights" ^
+--hidden-import onnxruntime ^
+--exclude-module matplotlib ^
+--exclude-module pandas ^
+--exclude-module scipy ^
+--exclude-module jupyter ^
+--exclude-module IPython ^
+--exclude-module torchvision ^
+--exclude-module transformers ^
+--exclude-module torch ^
+--exclude-module ultralytics ^
+--clean ^
+--noconfirm ^
+--name OffsideAI ^
+app.py

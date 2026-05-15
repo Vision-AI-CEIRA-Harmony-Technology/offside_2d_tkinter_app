@@ -1,0 +1,9 @@
+__pycache__/
+offside_logique\__pycache__/
+weights/
+experiment.ipynb
+pose_landmarker_heavy.task
+build/
+dist/
+OffsideAI.spec
+.venv/
