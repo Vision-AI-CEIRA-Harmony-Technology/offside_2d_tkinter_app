@@ -23,6 +23,7 @@ from canvas_utils import (
     on_mouse_down,
     on_mouse_drag,
     on_mouse_up,
+    on_right_click,
 )
 
 
@@ -68,6 +69,7 @@ class OffsideApp:
         self.on_mouse_down = lambda e: on_mouse_down(self, e)
         self.on_mouse_drag = lambda e: on_mouse_drag(self, e)
         self.on_mouse_up = lambda e: on_mouse_up(self, e)
+        self.on_right_click = lambda e: on_right_click(self, e)
 
         self.canvas = build_app_ui(root, self)
 
@@ -109,6 +111,8 @@ class OffsideApp:
         self.dragging_vp_line = False
 
         self.final_render = None
+
+        self.selected_bboxes = set()
 
     def get_pipeline(self):
         if self.pipeline is None:
@@ -212,6 +216,7 @@ class OffsideApp:
             self.attack_direction_var.set("")
 
         self.show_step()
+        self.selected_bboxes = set()
 
     def run_detection(self):
         threading.Thread(target=self._run_detection, daemon=True).start()
@@ -377,6 +382,15 @@ class OffsideApp:
 
         # STEP 1 -> STEP 2
         elif self.current_step == 1:
+            # keep only selected detections
+            if len(self.selected_bboxes) > 0:
+
+                self.state["detections"] = [
+                    det
+                    for i, det in enumerate(self.state["detections"])
+                    if i in self.selected_bboxes
+                ]
+
             self.current_step = 2
 
         # STEP 2 -> PROCESS -> STEP 3
@@ -549,7 +563,11 @@ class OffsideApp:
 
                 x1, y1, x2, y2 = det["bbox"]
 
-                color = (0, 255, 0)
+                color = (
+                    (0, 255, 255)
+                    if i in self.selected_bboxes
+                    else (0, 255, 0)
+                )
 
                 if self.selected_box == i:
                     color = (0, 255, 255)

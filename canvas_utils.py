@@ -7,6 +7,26 @@ def canvas_to_image(app, x, y):
     iy = (y - app.offset_y) / app.display_scale
     return int(ix), int(iy)
 
+def on_right_click(app, e):
+
+    # only bbox selection step
+    if app.current_step != 1:
+        return
+
+    x, y = canvas_to_image(app, e.x, e.y)
+
+    for i, det in enumerate(app.state["detections"]):
+
+        if point_in_box(det["bbox"], x, y):
+
+            # toggle selection
+            if i in app.selected_bboxes:
+                app.selected_bboxes.remove(i)
+            else:
+                app.selected_bboxes.add(i)
+
+            app.show_step()
+            return
 
 def get_all_boxes(app):
     return [det["bbox"] for det in app.state["detections"]]
@@ -256,6 +276,32 @@ def on_mouse_drag(app, e):
             app.show_step()
 
             return
+        if app.selected_vp_line is not None and app.dragging_vp_endpoint is not None:
+            p1, p2 = app.manual_vp_lines[app.selected_vp_line]
+            if app.dragging_vp_endpoint == 0:
+                p1 = (x, y)
+            else:
+                p2 = (x, y)
+            app.manual_vp_lines[app.selected_vp_line] = (p1, p2)
+            app.show_step()
+            return
+
+        if app.dragging_vp_line:
+            dx = x - app.start_x
+            dy = y - app.start_y
+            p1, p2 = app.manual_vp_lines[app.selected_vp_line]
+            p1 = (p1[0] + dx, p1[1] + dy)
+            p2 = (p2[0] + dx, p2[1] + dy)
+            app.manual_vp_lines[app.selected_vp_line] = (p1, p2)
+            app.start_x = x
+            app.start_y = y
+            app.show_step()
+            return
+
+        if app.vp_line_start is not None:
+            app.temp_vp_line = (app.vp_line_start, (x, y))
+            app.show_step()
+            return
 
         # -----------------------------
         # DRAW NEW LINE
@@ -271,31 +317,51 @@ def on_mouse_drag(app, e):
 
             return
     # -----------------------------
-    # STEP 5 : DRAG KEYPOINT
+    # STEP 5 : DRAG KEYPOINT (UPDATED)
     # -----------------------------
     if app.current_step == 5 and app.dragging_kp:
-
         kp_type, idx = app.selected_kp
 
-        # ATTACKER KP
         if kp_type == "attacker":
+            # Find which player the mouse is currently over
+            target_idx = idx
+            for i, det in enumerate(app.state["detections"]):
+                x1, y1, x2, y2 = det["bbox"]
+                if x1 <= x <= x2 and y1 <= y <= y2:
+                    target_idx = i
+                    break
 
-            det = app.state["detections"][idx]
+            # Clear manual keypoint from ALL detections
+            for det in app.state["detections"]:
+                det.pop("manual_offside_kp", None)
+                det.pop("offside_keypoint", None)
 
-            det["manual_offside_kp"] = (x, y)
-            det["offside_keypoint"] = (x, y)
+            # Assign new keypoint to target player
+            target_det = app.state["detections"][target_idx]
+            target_det["manual_offside_kp"] = (x, y)
+            target_det["offside_keypoint"] = (x, y)
 
-        # DEFENDER KP
+            # Update selection reference
+            app.selected_kp = ("attacker", target_idx)
+
+            # Force this player to be the offside candidate
+            result = app.state.get("offside")
+            if result is not None:
+                judgements = result[-1]
+                for j in range(len(judgements)):
+                    judgements[j] = "ONSIDE"
+                if target_idx < len(judgements):
+                    judgements[target_idx] = "OFFSIDE"
+
+            app.recompute_offside()
+
         elif kp_type == "defender":
-
             app.manual_last_defender_kp = (x, y)
-
-        app.recompute_offside()
+            app.recompute_offside()
 
         app.show_step()
-
         return
-
+    
     # ONLY STEP 1 & 2 BELOW
     if app.current_step != 1 and app.current_step != 2:
         return
@@ -369,14 +435,14 @@ def on_mouse_drag(app, e):
     
     #################################
     x, y = canvas_to_image(app, e.x, e.y)
-    if app.drag_mode == "move" and app.selected_box:
+    if app.drag_mode == "move" and app.selected_box is not None:
         box = get_box(app, app.selected_box)
         dx = x - app.start_x
         dy = y - app.start_y
         new_box = (box[0] + dx, box[1] + dy, box[2] + dx, box[3] + dy)
         set_box(app, app.selected_box, new_box)
         app.start_x, app.start_y = x, y
-    elif app.drag_mode == "resize" and app.selected_box:
+    elif app.drag_mode == "resize" and app.selected_box is not None:
         x1, y1, x2, y2 = get_box(app, app.selected_box)
         # top-left
         if app.resize_corner == 0:
@@ -428,28 +494,24 @@ def on_mouse_drag(app, e):
     app.show_step()
 
 
-def detect_keypoint_hit(app, x, y, radius=15):
+def detect_keypoint_hit(app, x, y, radius=20):
+    """Detect if mouse clicked on an editable keypoint (attacker or defender)."""
 
-    # ATTACKER POINTS
+    # ATTACKER OFFSIDE KEYPOINTS
     for i, det in enumerate(app.state["detections"]):
-
         kp = det.get("offside_keypoint")
-
         if kp is None:
             continue
 
         kx, ky = kp
-
         dist = ((kx - x) ** 2 + (ky - y) ** 2) ** 0.5
 
         if dist <= radius:
             return ("attacker", i)
 
-    # DEFENDER LINE POINT
+    # DEFENDER LAST PLAYER KEYPOINT
     result = app.state.get("offside")
-
     if result is not None:
-
         (
             offside_line,
             ground_line,
@@ -462,11 +524,8 @@ def detect_keypoint_hit(app, x, y, radius=15):
         ) = result
 
         if last_kp is not None:
-
             lx, ly = last_kp[0], last_kp[1]
-
             dist = ((lx - x) ** 2 + (ly - y) ** 2) ** 0.5
-
             if dist <= radius:
                 return ("defender", None)
 
@@ -495,7 +554,7 @@ def on_mouse_up(app, e):
 
         return
 
-    if app.current_step == 3:
+    if app.current_step == 5:
 
         app.dragging_kp = False
         app.selected_kp = None
