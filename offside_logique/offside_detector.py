@@ -270,192 +270,96 @@ class OffsideJudge:
     ) -> List[str]:
         """
         Judge offside status for all players.
-        
-        Args:
-            detections: List of detection dicts
-            team_labels: List of team labels
-            attack_info: Attack direction info
-            offside_line: Offside line coordinates
-            vanishing_point: Vanishing point
-            frame_shape: Frame dimensions
-            
-        Returns:
-            List of judgements ("OFFSIDE", "ONSIDE", or "")
         """
         if offside_line is None or vanishing_point is None:
             return [""] * len(detections)
+
         attacking_team = attack_info["attacking_team"]
         vp = vanishing_point
         H, W = frame_shape[:2]
+        x_axis = W if vp[0] > W / 2 else 0
+
         def line_projection_y():
             (x1, y1), (x2, y2) = offside_line
             midx = (x1 + x2) / 2
             midy = (y1 + y2) / 2
-            return OffsideLineComputer.compute_projection_y(midx, midy, vp, W if vp[0] > W / 2 else 0)
+            return OffsideLineComputer.compute_projection_y(midx, midy, vp, x_axis)
+
         offside_proj = line_projection_y()
-        judgements = []
-        for det, lbl in zip(detections, team_labels):
-            manual_kp = det.get("manual_offside_kp")
+        judgements = [""] * len(detections)
 
-            det.pop("offside_proj_point", None)
+        manual_attacker_idx = None
 
-            # keep manually edited kp
-            if manual_kp is None:
-                det.pop("offside_keypoint", None)
-            else:
-                det["offside_keypoint"] = manual_kp
+        # Find if any player has manual keypoint
+        for i, det in enumerate(detections):
+            if det.get("manual_offside_kp") is not None:
+                manual_attacker_idx = i
+                break
 
+        for i, (det, lbl) in enumerate(zip(detections, team_labels)):
             if lbl != attacking_team:
-                judgements.append("")
                 continue
-            kps = list(det["keypoints"].values())
-            if not kps:
-                x1, _, x2, _ = det["bbox"]
-                kps = [((x1 + x2) / 2.0, (det["bbox"][1] + det["bbox"][3]) / 2.0)]
+
             manual_kp = det.get("manual_offside_kp")
 
-            # -------------------------------------------------
-            # BUILD PROJECTED CANDIDATES
-            # -------------------------------------------------
-
-            projected_candidates = []
-
-            # manual point
+            # Use manual keypoint if available
             if manual_kp is not None:
-
                 kx, ky = manual_kp
 
-                # find bbox containing manual kp
+                # Find correct bbox for projection (important when switching players)
                 proj_bbox = det["bbox"]
-
                 for other_det in detections:
-
                     bx1, by1, bx2, by2 = other_det["bbox"]
-
                     if bx1 <= kx <= bx2 and by1 <= ky <= by2:
-
                         proj_bbox = other_det["bbox"]
                         break
 
                 _, _, _, proj_y2 = proj_bbox
-
                 projected_point = (kx, proj_y2)
 
                 proj_y = OffsideLineComputer.compute_projection_y(
-                    projected_point[0],
-                    projected_point[1],
-                    vp,
-                    W if vp[0] > W / 2 else 0
+                    projected_point[0], projected_point[1], vp, x_axis
                 )
 
-                projected_candidates.append(
-                    (
-                        kp,                 # original keypoint
-                        projected_point,    # projected ground point
-                        proj_y
-                    )
-                )
-
-            # normal keypoints
-            else:
-
-                for kp in kps:
-
-                    kx, ky = kp
-
-                    projected_point = (
-                        kx,
-                        det["bbox"][3]
-                    )
-
-                    proj_y = OffsideLineComputer.compute_projection_y(
-                        projected_point[0],
-                        projected_point[1],
-                        vp,
-                        W if vp[0] > W / 2 else 0
-                    )
-
-                    projected_candidates.append(
-                        (
-                            kp,                 # original keypoint
-                            projected_point,    # projected ground point
-                            proj_y
-                        )
-                    )
-
-            # -------------------------------------------------
-            # SELECT MOST ADVANCED PROJECTED POINT
-            # -------------------------------------------------
-
-            best_proj = min(
-                projected_candidates,
-                key=lambda p: p[2]
-            )
-
-            selected_kp, attacker_ground_point, adv_proj = best_proj
-
-            
-
-            # -------------------------------------------------
-            # OFFSIDE DECISION
-            # -------------------------------------------------
-
-            is_offside = adv_proj < offside_proj
-
-            # visualization/debug
-            # preserve manually moved attacker kp
-            if manual_kp is not None:
                 det["offside_keypoint"] = manual_kp
+                det["offside_proj_point"] = projected_point
+
+                is_offside = proj_y < offside_proj
+                judgements[i] = "OFFSIDE" if is_offside else "ONSIDE"
+
             else:
-                det["offside_keypoint"] = selected_kp
+                # Normal keypoint logic (unchanged)
+                kps = list(det["keypoints"].values())
+                if not kps:
+                    x1, _, x2, _ = det["bbox"]
+                    kps = [((x1 + x2) / 2.0, (det["bbox"][1] + det["bbox"][3]) / 2.0)]
 
-            det["offside_proj_point"] = attacker_ground_point
+                projected_candidates = []
+                for kp in kps:
+                    kx, ky = kp
+                    projected_point = (kx, det["bbox"][3])
+                    proj_y = OffsideLineComputer.compute_projection_y(
+                        projected_point[0], projected_point[1], vp, x_axis
+                    )
+                    projected_candidates.append((kp, projected_point, proj_y))
 
-            judgements.append(
-                "OFFSIDE" if is_offside else "ONSIDE"
-            )
+                if projected_candidates:
+                    best = min(projected_candidates, key=lambda p: p[2])
+                    selected_kp, attacker_ground_point, adv_proj = best
 
+                    det["offside_keypoint"] = selected_kp
+                    det["offside_proj_point"] = attacker_ground_point
 
-        closest_idx = None
-        closest_dist = float("inf")
+                    is_offside = adv_proj < offside_proj
+                    judgements[i] = "OFFSIDE" if is_offside else "ONSIDE"
 
-        for i, (det, lbl) in enumerate(zip(detections, team_labels)):
+        # Force manual attacker as OFFSIDE if present
+        if manual_attacker_idx is not None:
+            for j in range(len(judgements)):
+                judgements[j] = "ONSIDE"
+            judgements[manual_attacker_idx] = "OFFSIDE"
 
-            if lbl != attacking_team:
-                continue
-
-            kp = det.get("offside_keypoint")
-
-            if kp is None:
-                continue
-
-            proj = det.get("offside_proj_point")
-
-            if proj is None:
-                continue
-
-            px, py = proj
-
-            # distance to offside line reference
-            att_proj = OffsideLineComputer.compute_projection_y(
-                px,
-                py,
-                vp,
-                W if vp[0] > W / 2 else 0
-            )
-
-            dist = abs(att_proj - offside_proj)
-
-            if dist < closest_dist:
-                closest_dist = dist
-                closest_idx = i
-
-        # only if nobody is offside
-        if "OFFSIDE" not in judgements and closest_idx is not None:
-            judgements[closest_idx] = "CLOSEST"
-            
         return judgements
-
 
 class OffsideDetector:
     """Main offside detection orchestrator."""
