@@ -12,27 +12,49 @@ class OffsideLineComputer:
     """Computes the offside line based on defender positions."""
     
     @staticmethod
-    def compute_projection_y(
-        kx: float, ky: float,
+    def compute_depth_metric(
+        px: float,
+        py: float,
         vp: Tuple[float, float],
-        x_axis: int
+        frame_w: int
     ) -> float:
-        """
-        Project point onto axis using vanishing point.
-        
-        Args:
-            kx, ky: Keypoint position
-            vp: Vanishing point
-            x_axis: Target x-coordinate (0 or W)
-            
-        Returns:
-            Projected y-coordinate
-        """
-        x1, y1 = vp
-        if abs(kx - x1) < 1e-6:
-            return y1
-        slope = (ky - y1) / (kx - x1)
-        return y1 + slope * (x_axis - x1)
+
+        vx, vy = vp
+
+        # --------------------------------------------------
+        # CASE 1:
+        # VP horizontally inside image
+        # use intersection with y = 0
+        # --------------------------------------------------
+
+        if 0 <= vx <= frame_w:
+
+            denom = (py - vy)
+
+            if abs(denom) < 1e-6:
+                return px
+
+            t = -vy / denom
+
+            x_intersect = vx + t * (px - vx)
+
+            return x_intersect
+
+        # --------------------------------------------------
+        # CASE 2:
+        # fallback to old side-border logic
+        # --------------------------------------------------
+
+        else:
+
+            x_axis = frame_w if vx > frame_w / 2 else 0
+
+            if abs(px - vx) < 1e-6:
+                return vy
+
+            slope = (py - vy) / (px - vx)
+
+            return vy + slope * (x_axis - vx)
     
     @staticmethod
     def collect_defender_keypoints(
@@ -40,63 +62,97 @@ class OffsideLineComputer:
         team_labels: List[int],
         defending_team: int,
         vp: Tuple[float, float],
-        x_axis: int
+        frame_w: int,
+        attack_direction: str
     ) -> List[Tuple]:
+
         """
         Collect all defender keypoints with projection.
-        
+
         Returns:
-            List of (kx, ky, proj_y, det_idx)
+            List of (kx, ky, depth_metric, det_idx)
         """
+
         defender_candidates = []
+
         for i, (det, lbl) in enumerate(zip(detections, team_labels)):
+
             if lbl != defending_team:
                 continue
+
             kps = list(det["keypoints"].values())
+
             if not kps:
+
                 x1, _, x2, _ = det["bbox"]
-                kps = [((x1 + x2) / 2.0, (det["bbox"][1] + det["bbox"][3]) / 2.0)]
+
+                kps = [
+                    (
+                        (x1 + x2) / 2.0,
+                        (det["bbox"][1] + det["bbox"][3]) / 2.0
+                    )
+                ]
+
             projected_candidates = []
+
             for kp in kps:
 
                 kx, ky = kp
 
                 # project kp to ground
-                projected_point = (kx, det["bbox"][3])
+                projected_point = (
+                    kx,
+                    det["bbox"][3]
+                )
 
-                proj_y = OffsideLineComputer.compute_projection_y(
-                    projected_point[0],
-                    projected_point[1],
-                    vp,
-                    x_axis
+                depth_metric = (
+                    OffsideLineComputer.compute_depth_metric(
+                        projected_point[0],
+                        projected_point[1],
+                        vp,
+                        frame_w
+                    )
                 )
 
                 projected_candidates.append(
                     (
-                        kp,                 # original keypoint
-                        projected_point,    # projected ground point
-                        proj_y
+                        kp,
+                        projected_point,
+                        depth_metric
                     )
                 )
 
-            # select best projected point
-            best_proj = min(
-                projected_candidates,
-                key=lambda p: p[2]
-            )
+            # --------------------------------------------------
+            # choose most advanced body part
+            # --------------------------------------------------
 
-            selected_kp, attacker_ground_point, adv_proj = best_proj
+            if attack_direction == "right":
+
+                best_proj = max(
+                    projected_candidates,
+                    key=lambda p: p[2]
+                )
+
+            else:
+
+                best_proj = min(
+                    projected_candidates,
+                    key=lambda p: p[2]
+                )
+
+            selected_kp, defender_ground_point, depth_metric = best_proj
 
             defender_candidates.append(
                 (
                     selected_kp[0],
                     selected_kp[1],
-                    proj_y,
+                    depth_metric,
                     i
                 )
             )
+
         return defender_candidates
-    
+
     @staticmethod
     def compute_offside_line(
         vanishing_point,
@@ -127,23 +183,36 @@ class OffsideLineComputer:
 
         vp = vanishing_point
 
-        x_axis = W if vp[0] > W / 2 else 0
-
         defender_candidates = (
             OffsideLineComputer.collect_defender_keypoints(
                 detections,
                 team_labels,
                 defending_team,
                 vp,
-                x_axis
+                W,
+                attack_info["direction"]
             )
         )
 
         if not defender_candidates:
-            return None, None, [], None, None, None, x_axis
+            return None, None, [], None, None, None, None
 
         # sort by projected depth
-        defender_candidates.sort(key=lambda c: c[2])
+        attack_direction = attack_info["direction"]
+
+
+        if attack_info["direction"] == "right":
+
+            defender_candidates.sort(
+                key=lambda c: c[2],
+                reverse=True
+            )
+
+        else:
+
+            defender_candidates.sort(
+                key=lambda c: c[2]
+            )
 
         # selected defender
         if manual_last_defender_kp is not None:
@@ -240,10 +309,27 @@ class OffsideLineComputer:
         # DEBUG / VISUALIZATION POINTS
         # -------------------------------------------------
 
-        projection_points = [
-            (int(x_axis), int(proj_y))
-            for _, _, proj_y, _ in defender_candidates
-        ]
+        projection_points = []
+
+        vx, vy = vp
+
+        if 0 <= vx <= W:
+
+            for _, _, metric, _ in defender_candidates:
+
+                projection_points.append(
+                    (int(metric), 0)
+                )
+
+        else:
+
+            x_axis = W if vx > W / 2 else 0
+
+            for _, _, metric, _ in defender_candidates:
+
+                projection_points.append(
+                    (int(x_axis), int(metric))
+                )
 
         return (
             offside_line,
@@ -252,7 +338,7 @@ class OffsideLineComputer:
             last_kp,
             projected_point,
             projection_points,
-            x_axis
+            None
         )
 
 
@@ -276,16 +362,26 @@ class OffsideJudge:
 
         attacking_team = attack_info["attacking_team"]
         vp = vanishing_point
+
         H, W = frame_shape[:2]
-        x_axis = W if vp[0] > W / 2 else 0
 
-        def line_projection_y():
-            (x1, y1), (x2, y2) = offside_line
-            midx = (x1 + x2) / 2
-            midy = (y1 + y2) / 2
-            return OffsideLineComputer.compute_projection_y(midx, midy, vp, x_axis)
+        line_mid_x = (
+            offside_line[0][0] + offside_line[1][0]
+        ) / 2
 
-        offside_proj = line_projection_y()
+        line_mid_y = (
+            offside_line[0][1] + offside_line[1][1]
+        ) / 2
+
+        offside_metric = (
+            OffsideLineComputer.compute_depth_metric(
+                line_mid_x,
+                line_mid_y,
+                vp,
+                W
+            )
+        )
+
         judgements = [""] * len(detections)
 
         manual_attacker_idx = None
@@ -317,14 +413,22 @@ class OffsideJudge:
                 _, _, _, proj_y2 = proj_bbox
                 projected_point = (kx, proj_y2)
 
-                proj_y = OffsideLineComputer.compute_projection_y(
-                    projected_point[0], projected_point[1], vp, x_axis
+                depth_metric = OffsideLineComputer.compute_depth_metric(
+                    projected_point[0],
+                    projected_point[1],
+                    vp,
+                    W
                 )
 
                 det["offside_keypoint"] = manual_kp
                 det["offside_proj_point"] = projected_point
 
-                is_offside = proj_y < offside_proj
+                attack_direction = attack_info["direction"]
+
+                if attack_direction == "right":
+                    is_offside = depth_metric > offside_metric
+                else:
+                    is_offside = depth_metric < offside_metric
                 judgements[i] = "OFFSIDE" if is_offside else "ONSIDE"
 
             else:
@@ -338,19 +442,38 @@ class OffsideJudge:
                 for kp in kps:
                     kx, ky = kp
                     projected_point = (kx, det["bbox"][3])
-                    proj_y = OffsideLineComputer.compute_projection_y(
-                        projected_point[0], projected_point[1], vp, x_axis
+                    depth_metric = OffsideLineComputer.compute_depth_metric(
+                        projected_point[0],
+                        projected_point[1],
+                        vp,
+                        W
                     )
-                    projected_candidates.append((kp, projected_point, proj_y))
+                    projected_candidates.append((kp, projected_point, depth_metric))
 
                 if projected_candidates:
-                    best = min(projected_candidates, key=lambda p: p[2])
+                    attack_direction = attack_info["direction"]
+                    if attack_direction == "right":
+                        best = max(
+                            projected_candidates,
+                            key=lambda p: p[2]
+                        )
+                    else:
+                        best = min(
+                            projected_candidates,
+                            key=lambda p: p[2]
+                        )
+
                     selected_kp, attacker_ground_point, adv_proj = best
 
                     det["offside_keypoint"] = selected_kp
                     det["offside_proj_point"] = attacker_ground_point
 
-                    is_offside = adv_proj < offside_proj
+                    attack_direction = attack_info["direction"]
+
+                    if attack_direction == "right":
+                        is_offside = adv_proj > offside_metric
+                    else:
+                        is_offside = adv_proj < offside_metric
                     judgements[i] = "OFFSIDE" if is_offside else "ONSIDE"
 
         # Force manual attacker as OFFSIDE if present
