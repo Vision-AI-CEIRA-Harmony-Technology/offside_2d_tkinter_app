@@ -98,15 +98,26 @@ class OffsideApp:
         # First selected team is defending
         self.defending_team = 0
 
-        # Manual VP lines
+        # Manual VPvetical lines
         self.manual_vp_lines = []
         self.temp_vp_line = None
         self.vp_line_start = None
 
-        # Manual lines for vp drawing
+        # Manual VPhorizontal lines
+        self.manual_vph_lines = []
+        self.temp_vph_line = None
+        self.vph_line_start = None
+        self.manual_vph_lines = []
+
+        # Manual lines for vpv drawing
         self.selected_vp_line = None
         self.dragging_vp_endpoint = None
         self.dragging_vp_line = False
+
+        # Manual lines for vph drawing
+        self.selected_vph_line = None
+        self.dragging_vph_endpoint = None
+        self.dragging_vph_line = False
 
         self.final_render = None
 
@@ -197,15 +208,25 @@ class OffsideApp:
         self.manual_last_defender_kp = None
         self.manual_last_defender_kp = None 
 
-        # Manual VP line editing
+        # Manual VPvertical line editing
         self.manual_vp_lines = []
         self.temp_vp_line = None
         self.vp_line_start = None
 
-        # Manual vp line editing
+        # Manual VPhorizontal line editing
+        self.manual_vph_lines = []
+        self.temp_vph_line = None
+        self.vph_line_start = None
+
+        # Manual vpv line editing
         self.selected_vp_line = None
         self.dragging_vp_endpoint = None
         self.dragging_vp_line = False
+
+        # Manual vph line editing
+        self.selected_vph_line = None
+        self.dragging_vph_endpoint = None
+        self.dragging_vph_line = False
 
         # Reset attack direction input
         if hasattr(self, "attack_direction_var"):
@@ -423,8 +444,28 @@ class OffsideApp:
 
             self.current_step = 4
 
-        # step 4 >> step 5
+        # STEP 4 > vertical VP > STEP 5
         elif self.current_step == 4:
+
+            # use manual VP if user drew 2 lines
+            if len(self.manual_vph_lines) == 2:
+
+                l1 = self.manual_vph_lines[0]
+                l2 = self.manual_vph_lines[1]
+
+                vp = GeometryUtils.line_intersection(l1, l2)
+
+                if vp is not None:
+                    self.state["vp"] = vp
+
+            # run processing now
+            self.run_pose_from_boxes()
+            self.run_offside()
+
+            self.current_step = 5
+
+        # step 5 >> step 6
+        elif self.current_step == 5:
 
             if not self._is_attack_direction_valid():
                 return
@@ -437,7 +478,7 @@ class OffsideApp:
             # Recompute offside with updated direction
             self.recompute_offside()
 
-            self.current_step = 5
+            self.current_step = 6
 
         else:
 
@@ -713,8 +754,59 @@ class OffsideApp:
                         (0, 0, 255),
                         -1
                     )
-
+        
         elif self.current_step == 4:
+             # draw existing lines
+            for line in self.manual_vph_lines:
+
+                (x1, y1), (x2, y2) = line
+
+                cv2.line(
+                    img,
+                    (x1, y1),
+                    (x2, y2),
+                    (0, 255, 255),
+                    2
+                )
+                cv2.circle(img, (x1, y1), 6, (0, 255, 255), -1)
+                cv2.circle(img, (x2, y2), 6, (0, 255, 255), -1)
+
+            # draw temp line
+            if self.temp_vph_line is not None:
+
+                (x1, y1), (x2, y2) = self.temp_vph_line
+
+                cv2.line(
+                    img,
+                    (x1, y1),
+                    (x2, y2),
+                    (255, 255, 0),
+                    2
+                )
+                cv2.circle(img, (x1, y1), 6, (0, 255, 255), -1)
+                cv2.circle(img, (x2, y2), 6, (0, 255, 255), -1)
+
+            # show computed VP preview
+            if len(self.manual_vph_lines) == 2:
+
+                vp = GeometryUtils.line_intersection(
+                    self.manual_vph_lines[0],
+                    self.manual_vph_lines[1]
+                )
+
+                if vp is not None:
+
+                    vx, vy = map(int, vp)
+
+                    cv2.circle(
+                        img,
+                        (vx, vy),
+                        6,
+                        (0, 0, 255),
+                        -1
+                    )
+
+        elif self.current_step == 5:
             #! dikra: show detections colored with assigned team color
             for det, label in zip(self.state["detections"], self.state["team_labels"]):
                 x1, y1, x2, y2 = det["bbox"]
@@ -724,7 +816,7 @@ class OffsideApp:
                 # print(color)
                 cv2.rectangle(img, (x1, y1), (x2, y2), color, 2)
 
-        elif self.current_step == 5:
+        elif self.current_step == 6:
             off = self.state["offside"]
             if off:
                 pipeline = self.get_pipeline()
@@ -796,9 +888,10 @@ class OffsideApp:
             0: "Step 0 • Upload image",
             1: "Step 1 • Edit player bounding boxes",
             2: f"Step 2 • Select one player from each team{current_team_text}",
-            3: "Step 3 - Draw 2 parallel pitch lines (optional)",
-            4: "Step 4 - Review team assignment",
-            5: "Step 5 - Edit offside keypoints"
+            3: "Step 3 - Draw 2 horizontal parallel pitch lines (optional)",
+            4: "Step 4 - Draw 2 vertical parallel pitch lines ",
+            5: "Step 5 - Review team assignment",
+            6: "Step 6 - Edit offside keypoints"
         }
 
         if hasattr(self, "step_label"):
@@ -825,7 +918,7 @@ class OffsideApp:
             self.clear_btn.pack(side="left", padx=5)
 
         #! dikra: show attack direction input during team assign review 
-        if self.current_step == 4:
+        if self.current_step == 6:
             self.attack_dir_label.pack(side="left", padx=(15, 5), pady=12)
             self.attack_direction_entry.pack(side="left", padx=5)
 

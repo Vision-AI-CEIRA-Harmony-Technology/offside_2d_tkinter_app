@@ -48,7 +48,7 @@ class LineDetector:
     """Detects white lines on the pitch."""
     
     @staticmethod
-    def detect_white_lines(masked_frame: np.ndarray) -> Tuple[Optional[np.ndarray], Optional[List[float]]]:
+    def detect_vertical_white_lines(masked_frame: np.ndarray) -> Tuple[Optional[np.ndarray], Optional[List[float]]]:
         """
         Detect white lines on pitch.
         
@@ -101,9 +101,64 @@ class LineDetector:
         return np.array(white_lines) if white_lines else None, dominant_angles if dominant_angles else None
 
     @staticmethod
-    def detect_pitch_lines(masked_frame: np.ndarray) -> List[Tuple]:
+    def detect_horizontal_white_lines(masked_frame: np.ndarray) -> Tuple[Optional[np.ndarray], Optional[List[float]]]:
         """
-        Detect pitch lines using saturation channel.
+        Detect white lines on pitch.
+        
+        Returns:
+            (raw_white_lines, dominant_angles)
+        """
+        H, W = masked_frame.shape[:2]
+        hsv = cv2.cvtColor(masked_frame, cv2.COLOR_BGR2HSV)
+        S = hsv[:, :, 1]
+        V = hsv[:, :, 2]
+        field_pixels_v = V[masked_frame[:, :, 0] > 0]
+        field_pixels_s = S[masked_frame[:, :, 0] > 0]
+        v_threshold = np.percentile(field_pixels_v, 98)
+        s_threshold = np.percentile(field_pixels_s, 5)
+        white_mask = ((V > v_threshold) & (S < s_threshold)).astype(np.uint8) * 255
+        kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (15, 3))
+        cleaned = cv2.morphologyEx(white_mask, cv2.MORPH_CLOSE, kernel, iterations=2)
+        raw_white_lines = cv2.HoughLinesP(
+            cleaned,
+            rho=1,
+            theta=np.pi / 180,
+            threshold=WHITE_LINE_THRESHOLD,
+            minLineLength=int(W * 0.001),
+            maxLineGap=15
+        )
+        if raw_white_lines is None:
+            return None, None
+        angles = []
+        white_lines = []
+        for line in raw_white_lines:
+            x1, y1, x2, y2 = line[0]
+            dx = x2 - x1
+            if dx == 0:
+                continue
+            dy = y2 - y1
+            angle = np.degrees(np.arctan2(dy, dx))
+            if 0 <= abs(angle) <= 15:
+                angles.append(angle)
+                white_lines.append(line)
+        if not angles:
+            return white_lines if white_lines else None, None
+        hist, bin_edges = np.histogram(angles, bins=18, range=(-90, 90))
+        top_indices = np.argsort(hist)[-2:][::-1]
+        dominant_angles = []
+        for idx in top_indices:
+            if hist[idx] > 0:
+                bin_center = (bin_edges[idx] + bin_edges[idx + 1]) / 2
+                dominant_angles.append(float(bin_center))
+        print(f"Dominant angles: {[f'{a:.1f}°' for a in dominant_angles]}")
+        return np.array(white_lines) if white_lines else None, dominant_angles if dominant_angles else None
+
+
+
+    @staticmethod
+    def detect_horizontal_pitch_lines(masked_frame: np.ndarray) -> List[Tuple]:
+        """
+        Detect horizontal pitch lines using saturation channel.
         
         Returns:
             List of lines as ((x1,y1),(x2,y2))
@@ -126,7 +181,54 @@ class LineDetector:
             minLineLength=HOUGH_MIN_LENGTH,
             maxLineGap=HOUGH_MAX_GAP,
         )
-        white_lines, dominant_angles = LineDetector.detect_white_lines(masked_frame)
+        white_lines, dominant_angles = LineDetector.detect_horizontal_white_lines(masked_frame)
+        if raw_lines is None and white_lines is None:
+            return []
+        if white_lines is not None:
+            if raw_lines is not None:
+                raw_lines = np.append(raw_lines, white_lines, axis=0)
+            else:
+                raw_lines = white_lines
+        if raw_lines is None:
+            return []
+        lines = []
+        for line in raw_lines:
+            x1, y1, x2, y2 = line[0]
+            if x2 == x1:
+                continue
+            angle = np.degrees(np.arctan2(y2 - y1, x2 - x1))
+            if dominant_angles is None or any(abs(angle - dom) <= 5 for dom in dominant_angles):
+                lines.append(((x1, y1), (x2, y2)))
+        print(f"Detected {len(lines)} pitch lines")
+        return lines
+    
+    @staticmethod
+    def detect_vertical_pitch_lines(masked_frame: np.ndarray) -> List[Tuple]:
+        """
+        Detect vertical pitch lines using saturation channel.
+        
+        Returns:
+            List of lines as ((x1,y1),(x2,y2))
+        """
+        H, W = masked_frame.shape[:2]
+        hsv = cv2.cvtColor(masked_frame, cv2.COLOR_BGR2HSV)
+        sat = hsv[:, :, 1]
+        sat = cv2.equalizeHist(sat)
+        k = max(5, int(min(H, W) * 0.006) | 1)
+        blurred = cv2.GaussianBlur(sat, (k + 4, k + 4), 0)
+        median = np.median(sat)
+        lower = int(max(0, 0.33 * median))
+        upper = int(min(255, 1.66 * median))
+        edges = cv2.Canny(blurred, lower, upper)
+        raw_lines = cv2.HoughLinesP(
+            edges,
+            rho=HOUGH_RHO,
+            theta=HOUGH_THETA,
+            threshold=HOUGH_THRESHOLD,
+            minLineLength=HOUGH_MIN_LENGTH,
+            maxLineGap=HOUGH_MAX_GAP,
+        )
+        white_lines, dominant_angles = LineDetector.detect_vertical_white_lines(masked_frame)
         if raw_lines is None and white_lines is None:
             return []
         if white_lines is not None:
@@ -232,6 +334,6 @@ class PitchAnalyzer:
             (masked_frame, pitch_lines, vanishing_point)
         """
         masked, _ = self.field_segmenter.segment_field(frame)
-        pitch_lines = self.line_detector.detect_pitch_lines(masked)
+        pitch_lines = self.line_detector.detect_horizontal_pitch_lines(masked)
         vp = self.vp_estimator.compute_vanishing_point(pitch_lines, frame) if pitch_lines else None
         return masked, pitch_lines, vp

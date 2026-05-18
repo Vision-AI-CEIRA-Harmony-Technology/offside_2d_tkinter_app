@@ -84,10 +84,14 @@ class OffsideDetectionPipeline:
         detections = pose_estimator.estimate_pose(masked)
         player_mask = PlayerMasker.create_player_mask(detections, frame.shape)
         clean_frame = PlayerMasker.hide_players(masked, player_mask)
-        pitch_lines = self.pitch_analyzer.line_detector.detect_pitch_lines(clean_frame)
-        vp = self.pitch_analyzer.vp_estimator.compute_vanishing_point(
-            pitch_lines, frame
-        ) if pitch_lines else None
+        pitch_vertical_lines = self.pitch_analyzer.line_detector.detect_vertical_pitch_lines(clean_frame)
+        pitch_horizontal_lines = self.pitch_analyzer.line_detector.detect_horizontal_pitch_lines(clean_frame)
+        vpv = self.pitch_analyzer.vp_estimator.compute_vanishing_point(
+            pitch_vertical_lines, frame
+        ) if pitch_vertical_lines else None
+        vph = self.pitch_analyzer.vp_estimator.compute_vanishing_point(
+            pitch_horizontal_lines, frame
+        ) if pitch_horizontal_lines else None
         team_labels, c0, c1 = TeamClassifier.classify_teams(masked, detections)
         if teamA_color is not None:
             c0 = np.array(teamA_color, dtype=np.float32)
@@ -109,7 +113,7 @@ class OffsideDetectionPipeline:
                 def_median = np.median(def_xs)
                 attack_info["direction"] = "left" if def_median < W / 2 else "right"
         result = self.offside_detector.compute_offside_status(
-            detections, team_labels, attack_info, vp, (H, W)
+            detections, team_labels, attack_info, vpv, (H, W)
         )
         offside_line, ground_line, all_def_lines, last_kp, projected_point, \
         projection_points, x_axis, judgements = result
@@ -118,8 +122,8 @@ class OffsideDetectionPipeline:
             "detections": detections,
             "team_labels": team_labels,
             "team_colors": (c0, c1),
-            "pitch_lines": pitch_lines,
-            "vanishing_point": vp,
+            "pitch_vertical_lines": pitch_vertical_lines,
+            "vanishing_point": vpv,
             "offside_line": offside_line,
             "ground_line": ground_line,
             "all_defender_lines": all_def_lines,
