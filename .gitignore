@@ -7,3 +7,4 @@ build/
 dist/
 OffsideAI.spec
 .venv/
+draft.ipynb

@@ -179,6 +179,7 @@ class OffsideLineComputer:
     @staticmethod
     def compute_offside_line(
         vanishing_point,
+        vanishig_point_horiz,
         detections,
         team_labels,
         attack_info,
@@ -377,10 +378,23 @@ class OffsideJudge:
         attack_info: dict,
         offside_line: Optional[Tuple],
         vanishing_point: Optional[Tuple[float, float]],
+        vanishing_point_horiz: Optional[Tuple[float, float]],
         frame_shape: Tuple[int, int]
     ) -> List[str]:
         """
         Judge offside status for all players.
+        
+        Args:
+            detections: List of detection dicts
+            team_labels: List of team labels
+            attack_info: Attack direction info
+            offside_line: Offside line coordinates
+            vanishing_point: Vanishing point
+            vanishing_point_horiz: Horizontal vanishing point
+            frame_shape: Frame dimensions
+            
+        Returns:
+            List of judgements ("OFFSIDE", "ONSIDE", or "")
         """
         if offside_line is None or vanishing_point is None:
             return [""] * len(detections)
@@ -448,6 +462,13 @@ class OffsideJudge:
                     W
                 )
 
+                projected_candidates.append(
+                    (
+                        manual_kp,                 # original keypoint
+                        projected_point,    # projected ground point
+                        proj_y
+                    )
+                )
                 det["offside_keypoint"] = manual_kp
                 det["offside_proj_point"] = projected_point
 
@@ -559,6 +580,7 @@ class OffsideDetector:
         team_labels,
         attack_info,
         vanishing_point,
+        vanishig_point_horiz,
         frame_shape,
         manual_last_defender_kp=None
     ):
@@ -573,10 +595,10 @@ class OffsideDetector:
             return None, None, [], None, None, None, None, [""] * len(detections)
         offside_line, ground_line, all_def_lines, last_kp, projected_point, \
         projection_points, x_axis = self.line_computer.compute_offside_line(
-            vanishing_point, detections, team_labels, attack_info, frame_shape, manual_last_defender_kp
+            vanishing_point, vanishig_point_horiz, detections, team_labels, attack_info, frame_shape, manual_last_defender_kp
         )
         judgements = self.judge.judge_attackers(
-            detections, team_labels, attack_info, offside_line, vanishing_point, frame_shape
+            detections, team_labels, attack_info, offside_line, vanishing_point, vanishig_point_horiz, frame_shape
         )
         return (
             offside_line, ground_line, all_def_lines, last_kp,

@@ -137,6 +137,20 @@ def build_app_ui(root, app):
         style="Action.TButton"
     )
 
+    app.add_keypoint_btn = ttk.Button(
+        toolbar,
+        text="Add keypoint",
+        command=app.toggle_add_keypoint_mode,
+        style="Action.TButton"
+    )
+
+    app.delete_keypoint_btn = ttk.Button(
+        toolbar,
+        text="Delete keypoint",
+        command=app.delete_selected_keypoint,
+        style="Action.TButton"
+    )
+
     app.attack_direction_var = tk.StringVar()
     app.attack_dir_label = ttk.Label(
         toolbar,

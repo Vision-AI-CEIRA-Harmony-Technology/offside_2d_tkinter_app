@@ -100,7 +100,7 @@ def set_roi(app, idx, roi):
 def on_mouse_down(app, e):
     x, y = canvas_to_image(app, e.x, e.y)
     # -----------------------------
-    # STEP 3 : VP LINE DRAWING
+    # STEP 3 & 4: VP vert & horiz LINE DRAWING
     # -----------------------------
     if app.current_step == 3:
 
@@ -144,10 +144,58 @@ def on_mouse_down(app, e):
         app.temp_vp_line = ((x, y), (x, y))
 
         return
+    
+    if app.current_step == 4:
+
     # -----------------------------
-    # STEP 5 : KEYPOINT EDITING
+        # EDIT EXISTING LINES
+        # -----------------------------
+        for idx, line in enumerate(app.manual_vph_lines):
+
+            p1, p2 = line
+
+            # endpoint 1
+            if point_near_point((x, y), p1):
+
+                app.selected_vph_line = idx
+                app.dragging_vph_endpoint = 0
+                return
+
+            # endpoint 2
+            if point_near_point((x, y), p2):
+
+                app.selected_vph_line = idx
+                app.dragging_vph_endpoint = 1
+                return
+
+            # move whole line
+            if point_near_line((x, y), line):
+
+                app.selected_vph_line = idx
+                app.dragging_vph_line = True
+                app.start_x = x
+                app.start_y = y
+                return
+
+        # -----------------------------
+        # CREATE NEW LINE
+        # -----------------------------
+        if len(app.manual_vph_lines) >= 2:
+            return
+
+        app.vph_line_start = (x, y)
+        app.temp_vph_line = ((x, y), (x, y))
+
+        return
+
     # -----------------------------
-    if app.current_step == 5:
+    # STEP 6 : KEYPOINT EDITING
+    # -----------------------------
+    if app.current_step == 6:
+
+        if getattr(app, "placing_offside_kp", False):
+            if app.place_offside_keypoint_at(x, y):
+                return
 
         hit = detect_keypoint_hit(app, x, y)
 
@@ -157,8 +205,8 @@ def on_mouse_down(app, e):
 
         return
     
-    #!dikra: STEP4: assignment review, click bbox to change color
-    if app.current_step == 4:
+    #!dikra: STEP5: assignment review, click bbox to change color
+    if app.current_step == 5:
         # Iterate through all detections to see if we clicked inside one
         for i, det in enumerate(app.state["detections"]):
             if point_in_box(det["bbox"], x, y):
@@ -316,10 +364,94 @@ def on_mouse_drag(app, e):
             app.show_step()
 
             return
+        
+    if app.current_step == 4:
+
+        # -----------------------------
+        # DRAG ENDPOINT
+        # -----------------------------
+        if app.selected_vph_line is not None and app.dragging_vph_endpoint is not None:
+
+            p1, p2 = app.manual_vph_lines[app.selected_vph_line]
+
+            if app.dragging_vp_endpoint == 0:
+                p1 = (x, y)
+            else:
+                p2 = (x, y)
+
+            app.manual_vph_lines[app.selected_vph_line] = (p1, p2)
+
+            app.show_step()
+
+            return
+
+        # -----------------------------
+        # MOVE WHOLE LINE
+        # -----------------------------
+        if app.dragging_vph_line:
+
+            dx = x - app.start_x
+            dy = y - app.start_y
+
+            p1, p2 = app.manual_vph_lines[app.selected_vph_line]
+
+            p1 = (p1[0] + dx, p1[1] + dy)
+            p2 = (p2[0] + dx, p2[1] + dy)
+
+            app.manual_vph_lines[app.selected_vph_line] = (p1, p2)
+
+            app.start_x = x
+            app.start_y = y
+
+            app.show_step()
+
+            return
+        if app.selected_vph_line is not None and app.dragging_vph_endpoint is not None:
+            p1, p2 = app.manual_vph_lines[app.selected_vph_line]
+            if app.dragging_vph_endpoint == 0:
+                p1 = (x, y)
+            else:
+                p2 = (x, y)
+            app.manual_vph_lines[app.selected_vph_line] = (p1, p2)
+            app.show_step()
+            return
+
+        if app.dragging_vph_line:
+            dx = x - app.start_x
+            dy = y - app.start_y
+            p1, p2 = app.manual_vph_lines[app.selected_vph_line]
+            p1 = (p1[0] + dx, p1[1] + dy)
+            p2 = (p2[0] + dx, p2[1] + dy)
+            app.manual_vph_lines[app.selected_vph_line] = (p1, p2)
+            app.start_x = x
+            app.start_y = y
+            app.show_step()
+            return
+
+        if app.vph_line_start is not None:
+            app.temp_vph_line = (app.vph_line_start, (x, y))
+            app.show_step()
+            return
+
+        # -----------------------------
+        # DRAW NEW LINE
+        # -----------------------------
+        if app.vph_line_start is not None:
+
+            app.temp_vph_line = (
+                app.vph_line_start,
+                (x, y)
+            )
+
+            app.show_step()
+
+            return
+        
     # -----------------------------
-    # STEP 5 : DRAG KEYPOINT (UPDATED)
+    # STEP 6 : DRAG KEYPOINT
     # -----------------------------
-    if app.current_step == 5 and app.dragging_kp:
+    if app.current_step == 6 and app.dragging_kp:
+
         kp_type, idx = app.selected_kp
 
         if kp_type == "attacker":
@@ -536,26 +668,41 @@ def on_mouse_up(app, e):
     # -----------------------------
     # STEP 3 : FINALIZE VP LINE
     # -----------------------------
-    if app.current_step == 3 and app.temp_vp_line is not None:
+    #! dikra: same applies for vphorizontal and vpvertical (step 3&4)
+    if app.current_step == 3 or app.current_step == 4:
 
         # finish new line
-        if app.vp_line_start is not None and app.temp_vp_line is not None:
+        if app.current_step == 3 and app.temp_vp_line is not None:
+            if app.vp_line_start is not None and app.temp_vp_line is not None:
+                    app.manual_vp_lines.append(app.temp_vp_line)
+        elif app.current_step == 4 and app.temp_vph_line is not None:
+            if app.vph_line_start is not None and app.temp_vph_line is not None:        
+                    app.manual_vph_lines.append(app.temp_vph_line)
 
-            app.manual_vp_lines.append(app.temp_vp_line)
+        if app.current_step == 3 and app.temp_vp_line is not None:
+        
+            app.vp_line_start = None
+            app.temp_vp_line = None
+            # stop editing
+            app.selected_vp_line = None
+            app.dragging_vp_endpoint = None
+            app.dragging_vp_line = False
 
-        app.vp_line_start = None
-        app.temp_vp_line = None
-
-        # stop editing
-        app.selected_vp_line = None
-        app.dragging_vp_endpoint = None
-        app.dragging_vp_line = False
+        if app.current_step == 4 and app.temp_vph_line is not None:
+        
+            app.vph_line_start = None
+            app.temp_vph_line = None
+            # stop editing
+            app.selected_vph_line = None
+            app.dragging_vph_endpoint = None
+            app.dragging_vph_line = False
+            
 
         app.show_step()
 
         return
 
-    if app.current_step == 5:
+    if app.current_step == 3 or app.current_step == 4:
 
         app.dragging_kp = False
         app.selected_kp = None

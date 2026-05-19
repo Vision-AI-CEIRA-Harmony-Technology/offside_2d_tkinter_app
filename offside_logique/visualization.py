@@ -22,6 +22,7 @@ class KeypointVisualizer:
         all_keypoints: bool = False,
         offside_line: Optional[Tuple] = None,
         vanishing_point: Optional[Tuple] = None,
+        vanishing_point_horiz: Optional[Tuple] = None,
         last_kp: Optional[Tuple] = None,
         projected_point: Optional[Tuple] = None,
         projection_points: Optional[List[Tuple]] = None,
@@ -48,6 +49,7 @@ class KeypointVisualizer:
             Frame with keypoints drawn
         """
         out = frame.copy()
+        out_save = frame.copy()
         # if offside_line is not None:
         #     cv2.line(out, offside_line[0], offside_line[1], (0, 255, 0), 1, cv2.LINE_AA)
         if all_keypoints:
@@ -57,7 +59,7 @@ class KeypointVisualizer:
                     continue
                 for x, y, c in all_kps:
                     if float(c) > 0.1:
-                        cv2.circle(out, (int(x), int(y)), 2, KEYPOINT_COLOR, -1)
+                        cv2.circle(out, (int(x), int(y)), 2, KEYPOINT_COLOR, 3)
                         if vanishing_point is not None:
                             vp_x, vp_y = map(int, vanishing_point)
                             cv2.line(out, (int(x), int(y)), (vp_x, vp_y), (255, 255, 255), 1, cv2.LINE_AA)
@@ -85,7 +87,15 @@ class KeypointVisualizer:
                         (int(kx), int(ky)),
                         2,   # smaller size
                         OFFSIDE_COLOR,
-                        -1
+                        3
+                    )
+                    # smaller keypoint
+                    cv2.circle(
+                        out_save,
+                        (int(kx), int(ky)),
+                        2,   # smaller size
+                        OFFSIDE_COLOR,
+                        3
                     )
         for det_idx, det in enumerate(detections):
             judgement = None
@@ -102,10 +112,21 @@ class KeypointVisualizer:
                     (int(okx), int(oky)),
                     2,
                     OFFSIDE_COLOR,
-                    -1
+                    3
                 )
                 cv2.putText(out, "Potential Offside", (int(okx) + 3, int(oky) - 35),
-                           cv2.FONT_HERSHEY_SIMPLEX, 0.8, OFFSIDE_COLOR, 2)
+                           cv2.FONT_HERSHEY_SIMPLEX, 0.8, OFFSIDE_COLOR, 1)
+                
+                # smaller point
+                cv2.circle(
+                    out_save,
+                    (int(okx), int(oky)),
+                    2,
+                    OFFSIDE_COLOR,
+                    3
+                )
+                # cv2.putText(out_save, "Potential Offside", (int(okx) + 3, int(oky) - 35),
+                #            cv2.FONT_HERSHEY_SIMPLEX, 0.8, OFFSIDE_COLOR, 1)
                 # proj = det.get("offside_proj_point")
                 # if proj is not None:
                 #     px, py = int(proj[0]), int(proj[1])
@@ -126,12 +147,27 @@ class KeypointVisualizer:
                         1,
                         cv2.LINE_AA,
                     )
+                    cv2.line(
+                        out_save,
+                        (int(okx), int(oky)),
+                        (px, py),
+                        OFFSIDE_COLOR,
+                        1,
+                        cv2.LINE_AA,
+                    )
 
-                    cv2.circle(out, (px, py), 1, (0, 165, 255), -1)
+                    cv2.circle(out, (px, py), 1, (0, 165, 255), 3)
                     H, W = out.shape[:2]
                     vp_x, vp_y = map(int, vanishing_point)
+                    vph_x, vph_y = map(int, vanishing_point_horiz)
                     full_line = GeometryUtils.extend_line_to_frame(
                         (vp_x, vp_y),
+                        (px, py),
+                        W,
+                        H
+                    )
+                    full_lineh = GeometryUtils.extend_line_to_frame(
+                        (vph_x, vph_y),
                         (px, py),
                         W,
                         H
@@ -144,6 +180,11 @@ class KeypointVisualizer:
                             pitch_mask,
                             vanishing_point
                         )
+                        clipped_lineh = GeometryUtils.clip_line_to_pitch_only_on_vp_side(
+                            full_lineh,
+                            pitch_mask,
+                            vanishing_point_horiz
+                        )
 
                         if clipped_line is not None:
 
@@ -155,13 +196,35 @@ class KeypointVisualizer:
                                 1,
                                 cv2.LINE_AA,
                             )
-        if vanishing_point is not None and all_keypoints:
+                            cv2.line(
+                                out_save,
+                                clipped_line[0],
+                                clipped_line[1],
+                                OFFSIDE_COLOR,
+                                1,
+                                cv2.LINE_AA,
+                            )
+
+                        if clipped_lineh is not None:
+
+                            cv2.line(
+                                out,
+                                clipped_lineh[0],
+                                clipped_lineh[1],
+                                OFFSIDE_COLOR,
+                                1,
+                                cv2.LINE_AA,
+                            )
+        if vanishing_point is not None and vanishing_point_horiz is not None and all_keypoints:
             vx, vy = map(int, vanishing_point)
-            cv2.circle(out, (vx, vy), 10, VP_COLOR, -1)
-            # cv2.circle(out, (vx, vy), 14, (0, 0, 0), 2) # why 2 viusalisations for VP?
+            vhx, vhy = map(int, vanishing_point_horiz)
+            cv2.circle(out, (vx, vy), 10, VP_COLOR, 3)
+            cv2.circle(out_save, (vx, vy), 10, VP_COLOR, 3)
+            cv2.circle(out, (vhx, vhy), 10, VP_COLOR, 3)
         if projection_points and not only_offside_attackers:
             for px, py in projection_points:
-                cv2.circle(out, (px, py), 1, (255, 255, 255), -1)
+                cv2.circle(out, (px, py), 1, (255, 255, 255), 3)
+                cv2.circle(out_save, (px, py), 1, (255, 255, 255), 3)
         if last_kp is not None:
 
             lx, ly = int(last_kp[0]), int(last_kp[1])
@@ -171,10 +234,17 @@ class KeypointVisualizer:
                 (lx, ly),
                 2,
                 LAST_DEF_KEYPOINT_COLOR,
-                -1
+                3
+            )
+            cv2.circle(
+                out_save,
+                (lx, ly),
+                2,
+                LAST_DEF_KEYPOINT_COLOR,
+                3
             )
             cv2.putText(out, "Last Def", (lx + 5, ly - 35),
-                       cv2.FONT_HERSHEY_SIMPLEX, 0.8, LAST_DEF_KEYPOINT_COLOR, 2)
+                       cv2.FONT_HERSHEY_SIMPLEX, 0.8, LAST_DEF_KEYPOINT_COLOR, 1)
             
         # if last_kp is not None and projected_point is not None:
         #     px, py = int(projected_point[0]), int(projected_point[1])
@@ -185,9 +255,16 @@ class KeypointVisualizer:
         if last_kp is not None and projected_point is not None:
             px, py = int(projected_point[0]), int(projected_point[1])
             vp_x, vp_y = map(int, vanishing_point)
+            vph_x, vph_y = map(int, vanishing_point_horiz)
             H, W = out.shape[:2]
             full_line = GeometryUtils.extend_line_to_frame(
                 (vp_x, vp_y),
+                (px, py),
+                W,
+                H
+            )
+            full_lineh = GeometryUtils.extend_line_to_frame(
+                (vph_x, vph_y),
                 (px, py),
                 W,
                 H
@@ -200,6 +277,11 @@ class KeypointVisualizer:
                     pitch_mask,
                     vanishing_point
                 )
+                clipped_lineh = GeometryUtils.clip_line_to_pitch_only_on_vp_side(
+                    full_lineh,
+                    pitch_mask,
+                    vanishing_point_horiz
+                )
 
                 if clipped_line is not None:
 
@@ -211,10 +293,33 @@ class KeypointVisualizer:
                         1,
                         cv2.LINE_AA,
                     )
-            cv2.line(out, (int(last_kp[0]), int(last_kp[1])), (px, py), LAST_DEF_KEYPOINT_COLOR, 2, cv2.LINE_AA)
+                    cv2.line(
+                        out_save,
+                        clipped_line[0],
+                        clipped_line[1],
+                        LAST_DEF_KEYPOINT_COLOR,
+                        1,
+                        cv2.LINE_AA,
+                    )
+                if clipped_lineh is not None:
+
+                    cv2.line(
+                        out,
+                        clipped_lineh[0],
+                        clipped_lineh[1],
+                        LAST_DEF_KEYPOINT_COLOR,
+                        1,
+                        cv2.LINE_AA,
+                    )
+                    
+            cv2.line(out, (int(last_kp[0]), int(last_kp[1])), (px, py), LAST_DEF_KEYPOINT_COLOR, 1, cv2.LINE_AA)
             cv2.circle(out, (int(last_kp[0]), int(last_kp[1])), 1, LAST_DEF_KEYPOINT_COLOR, -1)
             cv2.circle(out, (px, py), 1, LAST_DEF_KEYPOINT_COLOR, -1)
-        return out
+            cv2.line(out_save, (int(last_kp[0]), int(last_kp[1])), (px, py), LAST_DEF_KEYPOINT_COLOR, 1, cv2.LINE_AA)
+            cv2.circle(out_save, (int(last_kp[0]), int(last_kp[1])), 1, LAST_DEF_KEYPOINT_COLOR, -1)
+            cv2.circle(out_save, (px, py), 1, LAST_DEF_KEYPOINT_COLOR, -1)
+
+        return out, out_save
 
 
 class OverlayRenderer:
@@ -309,6 +414,7 @@ class VisualizationRenderer:
         all_keypoints: bool = False,
         offside_line: Optional[Tuple] = None,
         vanishing_point: Optional[Tuple] = None,
+        vanishing_point_horiz: Optional[Tuple] = None,
         last_kp: Optional[Tuple] = None,
         projected_point: Optional[Tuple] = None,
         projection_points: Optional[List[Tuple]] = None,
@@ -323,6 +429,7 @@ class VisualizationRenderer:
             all_keypoints,
             offside_line,
             vanishing_point,
+            vanishing_point_horiz,
             last_kp,
             projected_point,
             projection_points,
