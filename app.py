@@ -886,7 +886,8 @@ class OffsideApp:
             3: "Step 3 - Draw 2 horizontal parallel pitch lines (optional)",
             4: "Step 4 - Draw 2 vertical parallel pitch lines ",
             5: "Step 5 - Review team assignment",
-            6: "Step 6 - Edit offside keypoints"
+            6: "Step 6 - Edit offside keypoints",
+            7: "Final Visualisation - Save Result"
         }
 
         if hasattr(self, "step_label"):
