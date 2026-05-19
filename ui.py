@@ -238,6 +238,7 @@ def build_app_ui(root, app):
     canvas.bind("<ButtonPress-1>", lambda e: app.on_mouse_down(e))
     canvas.bind("<B1-Motion>", lambda e: app.on_mouse_drag(e))
     canvas.bind("<ButtonRelease-1>", lambda e: app.on_mouse_up(e))
+    canvas.bind("<Button-3>", lambda e: app.on_right_click(e))
 
     root.bind("<Delete>", lambda e: app.delete_selected_box())
 
