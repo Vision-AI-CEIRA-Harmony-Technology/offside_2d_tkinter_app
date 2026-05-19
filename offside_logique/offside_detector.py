@@ -150,7 +150,7 @@ class OffsideLineComputer:
                         key=lambda p: p[2]
                     )
 
-            else:  # attack left
+            else:
 
                 if vp_is_right:
                     best_proj = min(
@@ -490,15 +490,30 @@ class OffsideJudge:
                 if projected_candidates:
                     attack_direction = attack_info["direction"]
                     if attack_direction == "right":
-                        best = max(
-                            projected_candidates,
-                            key=lambda p: p[2]
-                        )
+
+                        if vp_is_right:
+                            best = max(
+                                projected_candidates,
+                                key=lambda p: p[2]
+                            )
+                        else:
+                            best = min(
+                                projected_candidates,
+                                key=lambda p: p[2]
+                            )
+
                     else:
-                        best = min(
-                            projected_candidates,
-                            key=lambda p: p[2]
-                        )
+
+                        if vp_is_right:
+                            best = min(
+                                projected_candidates,
+                                key=lambda p: p[2]
+                            )
+                        else:
+                            best = max(
+                                projected_candidates,
+                                key=lambda p: p[2]
+                            )
 
                     selected_kp, attacker_ground_point, adv_proj = best
 
