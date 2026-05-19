@@ -107,7 +107,6 @@ class OffsideApp:
         self.manual_vph_lines = []
         self.temp_vph_line = None
         self.vph_line_start = None
-        self.manual_vph_lines = []
 
         # Manual lines for vpv drawing
         self.selected_vp_line = None
@@ -244,6 +243,7 @@ class OffsideApp:
         result = pipeline.process_frame(self.original_img)
         self.state["detections"] = result["detections"]
         self.state["vp"] = result["vanishing_point"]
+        self.state["vph"] = result["vanishing_point_horiz"]
         self.state["pitch_mask"] = result["pitch_mask"]
         self.current_step = 1
         self.root.after(0, self.show_step)
@@ -306,8 +306,6 @@ class OffsideApp:
         manual_direction = None
         if hasattr(self, "attack_direction_var"):
             raw_direction = self.attack_direction_var.get().strip().lower()
-            #! debug
-            print("Raw direction", raw_direction)
             if raw_direction in ("left", "right"):
                 manual_direction = raw_direction
                 #! debug
@@ -329,6 +327,7 @@ class OffsideApp:
             labels,
             attack_info,
             self.state["vp"],
+            self.state["vph"],
             self.original_img.shape[:2],
             manual_last_defender_kp=self.manual_last_defender_kp
         )
@@ -355,6 +354,7 @@ class OffsideApp:
             self.state["team_labels"],
             self.state["attack_info"],
             self.state["vp"],
+            self.state["vph"],
             self.original_img.shape[:2],
             manual_last_defender_kp=self.manual_last_defender_kp
         )
@@ -453,10 +453,10 @@ class OffsideApp:
                 l1 = self.manual_vph_lines[0]
                 l2 = self.manual_vph_lines[1]
 
-                vp = GeometryUtils.line_intersection(l1, l2)
+                vph = GeometryUtils.line_intersection(l1, l2)
 
-                if vp is not None:
-                    self.state["vp"] = vp
+                if vph is not None:
+                    self.state["vph"] = vph
 
             # run processing now
             self.run_pose_from_boxes()
@@ -789,12 +789,12 @@ class OffsideApp:
             # show computed VP preview
             if len(self.manual_vph_lines) == 2:
 
-                vp = GeometryUtils.line_intersection(
+                vph = GeometryUtils.line_intersection(
                     self.manual_vph_lines[0],
                     self.manual_vph_lines[1]
                 )
 
-                if vp is not None:
+                if vph is not None:
 
                     vx, vy = map(int, vp)
 
@@ -812,8 +812,6 @@ class OffsideApp:
                 x1, y1, x2, y2 = det["bbox"]
                 if label == 0: color = tuple(int(c) for c in self.state["team_color_0"])
                 else: color = tuple(int(c) for c in self.state["team_color_1"])
-                #! debug
-                # print(color)
                 cv2.rectangle(img, (x1, y1), (x2, y2), color, 2)
 
         elif self.current_step == 6:
@@ -826,6 +824,7 @@ class OffsideApp:
                     all_keypoints=False,
                     offside_line=off[0],
                     vanishing_point=self.state["vp"],
+                    vanishing_point_horiz=self.state["vph"],
                     last_kp=off[3],
                     projected_point=off[4],
                     projection_points=off[5],

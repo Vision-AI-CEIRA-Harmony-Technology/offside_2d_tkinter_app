@@ -113,17 +113,29 @@ class OffsideDetectionPipeline:
                 def_median = np.median(def_xs)
                 attack_info["direction"] = "left" if def_median < W / 2 else "right"
         result = self.offside_detector.compute_offside_status(
-            detections, team_labels, attack_info, vpv, (H, W)
+            detections, team_labels, attack_info, vpv, vph, (H, W)
         )
         offside_line, ground_line, all_def_lines, last_kp, projected_point, \
         projection_points, x_axis, judgements = result
+        
+        #! debug: vp horizontal is drawn correctly
+        print({
+            "frame": frame,
+            "vanishing_point": vpv,
+            "vanishing_point_horiz": vph,
+            "offside_line": offside_line,
+            "ground_line": ground_line
+        })
+
         return {
             "frame": frame,
             "detections": detections,
             "team_labels": team_labels,
             "team_colors": (c0, c1),
             "pitch_vertical_lines": pitch_vertical_lines,
+            "pitch_horizontal_lines": pitch_horizontal_lines,
             "vanishing_point": vpv,
+            "vanishing_point_horiz": vph,
             "offside_line": offside_line,
             "ground_line": ground_line,
             "all_defender_lines": all_def_lines,
@@ -145,6 +157,7 @@ class OffsideDetectionPipeline:
             result["team_colors"],
             result["pitch_lines"],
             result["vanishing_point"],
+            result["vanishing_point_horiz"],
             result["offside_line"],
             result["ground_line"],
             result["all_defender_lines"],
