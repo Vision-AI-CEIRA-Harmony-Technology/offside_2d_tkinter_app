@@ -230,7 +230,7 @@ class OffsideDetectionPipeline:
         self,
         frame: np.ndarray,
         detections: list,
-        all_keypoints: bool = True,
+        all_keypoints: bool = False,
         offside_line: Optional[Tuple] = None,
         vanishing_point: Optional[Tuple] = None,
         vanishing_point_horiz: Optional[Tuple] = None,
