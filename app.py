@@ -815,7 +815,7 @@ class OffsideApp:
             off = self.state["offside"]
             if off:
                 pipeline = self.get_pipeline()
-                img = pipeline.render_keypoints_debug(
+                img, img_save = pipeline.render_keypoints_debug(
                     img,
                     self.state["detections"],
                     all_keypoints=False,
@@ -866,7 +866,7 @@ class OffsideApp:
                         (255, 255, 255),
                         -1
                     )
-            self.final_render = img.copy()
+            self.final_render = img_save.copy()
 
         if self.current_step == 2:
 
@@ -888,7 +888,7 @@ class OffsideApp:
             4: "Step 4 - Draw 2 vertical parallel pitch lines ",
             5: "Step 5 - Review team assignment",
             6: "Step 6 - Edit offside keypoints",
-            7: "Final Visualisation - Save Result"
+            7: "Step 7 -Final Visualisation - Save Result"
         }
 
         if hasattr(self, "step_label"):

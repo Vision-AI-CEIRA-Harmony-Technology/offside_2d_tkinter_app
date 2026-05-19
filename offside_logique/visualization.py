@@ -49,6 +49,7 @@ class KeypointVisualizer:
             Frame with keypoints drawn
         """
         out = frame.copy()
+        out_save = frame.copy()
         # if offside_line is not None:
         #     cv2.line(out, offside_line[0], offside_line[1], (0, 255, 0), 1, cv2.LINE_AA)
         if all_keypoints:
@@ -88,6 +89,14 @@ class KeypointVisualizer:
                         OFFSIDE_COLOR,
                         3
                     )
+                    # smaller keypoint
+                    cv2.circle(
+                        out_save,
+                        (int(kx), int(ky)),
+                        2,   # smaller size
+                        OFFSIDE_COLOR,
+                        3
+                    )
         for det_idx, det in enumerate(detections):
             judgement = None
             if judgements is not None and det_idx < len(judgements):
@@ -107,6 +116,17 @@ class KeypointVisualizer:
                 )
                 cv2.putText(out, "Potential Offside", (int(okx) + 3, int(oky) - 35),
                            cv2.FONT_HERSHEY_SIMPLEX, 0.8, OFFSIDE_COLOR, 1)
+                
+                # smaller point
+                cv2.circle(
+                    out_save,
+                    (int(okx), int(oky)),
+                    2,
+                    OFFSIDE_COLOR,
+                    3
+                )
+                # cv2.putText(out_save, "Potential Offside", (int(okx) + 3, int(oky) - 35),
+                #            cv2.FONT_HERSHEY_SIMPLEX, 0.8, OFFSIDE_COLOR, 1)
                 # proj = det.get("offside_proj_point")
                 # if proj is not None:
                 #     px, py = int(proj[0]), int(proj[1])
@@ -121,6 +141,14 @@ class KeypointVisualizer:
 
                     cv2.line(
                         out,
+                        (int(okx), int(oky)),
+                        (px, py),
+                        OFFSIDE_COLOR,
+                        1,
+                        cv2.LINE_AA,
+                    )
+                    cv2.line(
+                        out_save,
                         (int(okx), int(oky)),
                         (px, py),
                         OFFSIDE_COLOR,
@@ -168,6 +196,14 @@ class KeypointVisualizer:
                                 1,
                                 cv2.LINE_AA,
                             )
+                            cv2.line(
+                                out_save,
+                                clipped_line[0],
+                                clipped_line[1],
+                                OFFSIDE_COLOR,
+                                1,
+                                cv2.LINE_AA,
+                            )
 
                         if clipped_lineh is not None:
 
@@ -183,16 +219,25 @@ class KeypointVisualizer:
             vx, vy = map(int, vanishing_point)
             vhx, vhy = map(int, vanishing_point_horiz)
             cv2.circle(out, (vx, vy), 10, VP_COLOR, 3)
+            cv2.circle(out_save, (vx, vy), 10, VP_COLOR, 3)
             cv2.circle(out, (vhx, vhy), 10, VP_COLOR, 3)
         if projection_points and not only_offside_attackers:
             for px, py in projection_points:
                 cv2.circle(out, (px, py), 1, (255, 255, 255), 3)
+                cv2.circle(out_save, (px, py), 1, (255, 255, 255), 3)
         if last_kp is not None:
 
             lx, ly = int(last_kp[0]), int(last_kp[1])
 
             cv2.circle(
                 out,
+                (lx, ly),
+                2,
+                LAST_DEF_KEYPOINT_COLOR,
+                3
+            )
+            cv2.circle(
+                out_save,
                 (lx, ly),
                 2,
                 LAST_DEF_KEYPOINT_COLOR,
@@ -248,6 +293,14 @@ class KeypointVisualizer:
                         1,
                         cv2.LINE_AA,
                     )
+                    cv2.line(
+                        out_save,
+                        clipped_line[0],
+                        clipped_line[1],
+                        LAST_DEF_KEYPOINT_COLOR,
+                        1,
+                        cv2.LINE_AA,
+                    )
                 if clipped_lineh is not None:
 
                     cv2.line(
@@ -262,7 +315,11 @@ class KeypointVisualizer:
             cv2.line(out, (int(last_kp[0]), int(last_kp[1])), (px, py), LAST_DEF_KEYPOINT_COLOR, 1, cv2.LINE_AA)
             cv2.circle(out, (int(last_kp[0]), int(last_kp[1])), 1, LAST_DEF_KEYPOINT_COLOR, -1)
             cv2.circle(out, (px, py), 1, LAST_DEF_KEYPOINT_COLOR, -1)
-        return out
+            cv2.line(out_save, (int(last_kp[0]), int(last_kp[1])), (px, py), LAST_DEF_KEYPOINT_COLOR, 1, cv2.LINE_AA)
+            cv2.circle(out_save, (int(last_kp[0]), int(last_kp[1])), 1, LAST_DEF_KEYPOINT_COLOR, -1)
+            cv2.circle(out_save, (px, py), 1, LAST_DEF_KEYPOINT_COLOR, -1)
+
+        return out, out_save
 
 
 class OverlayRenderer:
