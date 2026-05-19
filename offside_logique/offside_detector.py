@@ -100,6 +100,7 @@ class OffsideLineComputer:
     @staticmethod
     def compute_offside_line(
         vanishing_point,
+        vanishig_point_horiz,
         detections,
         team_labels,
         attack_info,
@@ -266,6 +267,7 @@ class OffsideJudge:
         attack_info: dict,
         offside_line: Optional[Tuple],
         vanishing_point: Optional[Tuple[float, float]],
+        vanishing_point_horiz: Optional[Tuple[float, float]],
         frame_shape: Tuple[int, int]
     ) -> List[str]:
         """
@@ -277,6 +279,7 @@ class OffsideJudge:
             attack_info: Attack direction info
             offside_line: Offside line coordinates
             vanishing_point: Vanishing point
+            vanishing_point_horiz: Horizontal vanishing point
             frame_shape: Frame dimensions
             
         Returns:
@@ -350,7 +353,7 @@ class OffsideJudge:
 
                 projected_candidates.append(
                     (
-                        kp,                 # original keypoint
+                        manual_kp,                 # original keypoint
                         projected_point,    # projected ground point
                         proj_y
                     )
@@ -471,6 +474,7 @@ class OffsideDetector:
         team_labels,
         attack_info,
         vanishing_point,
+        vanishig_point_horiz,
         frame_shape,
         manual_last_defender_kp=None
     ):
@@ -485,10 +489,10 @@ class OffsideDetector:
             return None, None, [], None, None, None, None, [""] * len(detections)
         offside_line, ground_line, all_def_lines, last_kp, projected_point, \
         projection_points, x_axis = self.line_computer.compute_offside_line(
-            vanishing_point, detections, team_labels, attack_info, frame_shape, manual_last_defender_kp
+            vanishing_point, vanishig_point_horiz, detections, team_labels, attack_info, frame_shape, manual_last_defender_kp
         )
         judgements = self.judge.judge_attackers(
-            detections, team_labels, attack_info, offside_line, vanishing_point, frame_shape
+            detections, team_labels, attack_info, offside_line, vanishing_point, vanishig_point_horiz, frame_shape
         )
         return (
             offside_line, ground_line, all_def_lines, last_kp,

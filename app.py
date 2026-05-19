@@ -308,6 +308,7 @@ class OffsideApp:
             raw_direction = self.attack_direction_var.get().strip().lower()
             if raw_direction in ("left", "right"):
                 manual_direction = raw_direction
+                manual_direction = "left"
                 #! debug
                 print("manual direction", manual_direction)
 
@@ -444,7 +445,7 @@ class OffsideApp:
 
             self.current_step = 4
 
-        # STEP 4 > vertical VP > STEP 5
+        # STEP 4 > horizontal VP > STEP 5
         elif self.current_step == 4:
 
             # use manual VP if user drew 2 lines
@@ -467,11 +468,13 @@ class OffsideApp:
         # step 5 >> step 6
         elif self.current_step == 5:
 
-            if not self._is_attack_direction_valid():
-                return
-
+            # if not self._is_attack_direction_valid():
+            #     return
             # Update attack direction in state
             raw_direction = self.attack_direction_var.get().strip().lower()
+            raw_direction = "right"
+            #! debug
+            print("direction valid", raw_direction)
             if raw_direction in ("left", "right"):
                 self.state["attack_info"]["direction"] = raw_direction
 
@@ -796,7 +799,7 @@ class OffsideApp:
 
                 if vph is not None:
 
-                    vx, vy = map(int, vp)
+                    vx, vy = map(int, vph)
 
                     cv2.circle(
                         img,
@@ -815,6 +818,8 @@ class OffsideApp:
                 cv2.rectangle(img, (x1, y1), (x2, y2), color, 2)
 
         elif self.current_step == 6:
+            #! debug
+            print("AT STEP6 KPT EDIT")
             off = self.state["offside"]
             if off:
                 pipeline = self.get_pipeline()
@@ -917,7 +922,7 @@ class OffsideApp:
             self.clear_btn.pack(side="left", padx=5)
 
         #! dikra: show attack direction input during team assign review 
-        if self.current_step == 6:
+        if self.current_step == 5:
             self.attack_dir_label.pack(side="left", padx=(15, 5), pady=12)
             self.attack_direction_entry.pack(side="left", padx=5)
 
