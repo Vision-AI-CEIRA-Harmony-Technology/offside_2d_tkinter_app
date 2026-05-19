@@ -58,7 +58,7 @@ class KeypointVisualizer:
                     continue
                 for x, y, c in all_kps:
                     if float(c) > 0.1:
-                        cv2.circle(out, (int(x), int(y)), 2, KEYPOINT_COLOR, -1)
+                        cv2.circle(out, (int(x), int(y)), 2, KEYPOINT_COLOR, 3)
                         if vanishing_point is not None:
                             vp_x, vp_y = map(int, vanishing_point)
                             cv2.line(out, (int(x), int(y)), (vp_x, vp_y), (255, 255, 255), 1, cv2.LINE_AA)
@@ -86,7 +86,7 @@ class KeypointVisualizer:
                         (int(kx), int(ky)),
                         2,   # smaller size
                         OFFSIDE_COLOR,
-                        -1
+                        3
                     )
         for det_idx, det in enumerate(detections):
             judgement = None
@@ -103,10 +103,10 @@ class KeypointVisualizer:
                     (int(okx), int(oky)),
                     2,
                     OFFSIDE_COLOR,
-                    -1
+                    3
                 )
                 cv2.putText(out, "Potential Offside", (int(okx) + 3, int(oky) - 35),
-                           cv2.FONT_HERSHEY_SIMPLEX, 0.8, OFFSIDE_COLOR, 2)
+                           cv2.FONT_HERSHEY_SIMPLEX, 0.8, OFFSIDE_COLOR, 1)
                 # proj = det.get("offside_proj_point")
                 # if proj is not None:
                 #     px, py = int(proj[0]), int(proj[1])
@@ -128,7 +128,7 @@ class KeypointVisualizer:
                         cv2.LINE_AA,
                     )
 
-                    cv2.circle(out, (px, py), 1, (0, 165, 255), -1)
+                    cv2.circle(out, (px, py), 1, (0, 165, 255), 3)
                     H, W = out.shape[:2]
                     vp_x, vp_y = map(int, vanishing_point)
                     vph_x, vph_y = map(int, vanishing_point_horiz)
@@ -182,11 +182,11 @@ class KeypointVisualizer:
         if vanishing_point is not None and vanishing_point_horiz is not None and all_keypoints:
             vx, vy = map(int, vanishing_point)
             vhx, vhy = map(int, vanishing_point_horiz)
-            cv2.circle(out, (vx, vy), 10, VP_COLOR, -1)
-            cv2.circle(out, (vhx, vhy), 10, VP_COLOR, -1)
+            cv2.circle(out, (vx, vy), 10, VP_COLOR, 3)
+            cv2.circle(out, (vhx, vhy), 10, VP_COLOR, 3)
         if projection_points and not only_offside_attackers:
             for px, py in projection_points:
-                cv2.circle(out, (px, py), 1, (255, 255, 255), -1)
+                cv2.circle(out, (px, py), 1, (255, 255, 255), 3)
         if last_kp is not None:
 
             lx, ly = int(last_kp[0]), int(last_kp[1])
@@ -196,10 +196,10 @@ class KeypointVisualizer:
                 (lx, ly),
                 2,
                 LAST_DEF_KEYPOINT_COLOR,
-                -1
+                3
             )
             cv2.putText(out, "Last Def", (lx + 5, ly - 35),
-                       cv2.FONT_HERSHEY_SIMPLEX, 0.7, LAST_DEF_KEYPOINT_COLOR, 2)
+                       cv2.FONT_HERSHEY_SIMPLEX, 0.8, LAST_DEF_KEYPOINT_COLOR, 1)
             
         # if last_kp is not None and projected_point is not None:
         #     px, py = int(projected_point[0]), int(projected_point[1])

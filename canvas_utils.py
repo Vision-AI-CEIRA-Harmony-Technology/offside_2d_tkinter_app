@@ -173,6 +173,10 @@ def on_mouse_down(app, e):
     # -----------------------------
     if app.current_step == 6:
 
+        if getattr(app, "placing_offside_kp", False):
+            if app.place_offside_keypoint_at(x, y):
+                return
+
         hit = detect_keypoint_hit(app, x, y)
 
         if hit is not None:

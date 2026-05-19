@@ -205,7 +205,8 @@ class OffsideApp:
         self.selected_kp = None
         self.dragging_kp = False
         self.manual_last_defender_kp = None
-        self.manual_last_defender_kp = None 
+        self.manual_last_defender_kp = None
+        self.placing_offside_kp = False
 
         # Manual VPvertical line editing
         self.manual_vp_lines = []
@@ -907,6 +908,12 @@ class OffsideApp:
         if hasattr(self, "attack_dir_label"):
             self.attack_dir_label.pack_forget()
 
+        if hasattr(self, "add_keypoint_btn"):
+            self.add_keypoint_btn.pack_forget()
+
+        if hasattr(self, "delete_keypoint_btn"):
+            self.delete_keypoint_btn.pack_forget()
+
         # show only during bbox editing
         if self.current_step == 1:
 
@@ -917,6 +924,15 @@ class OffsideApp:
         if self.current_step == 5:
             self.attack_dir_label.pack(side="left", padx=(15, 5), pady=12)
             self.attack_direction_entry.pack(side="left", padx=5)
+
+        if self.current_step == 6:
+            self.add_keypoint_btn.pack(side="left", padx=5, pady=10)
+            self.delete_keypoint_btn.pack(side="left", padx=5, pady=10)
+        else:
+            if self.placing_offside_kp:
+                self.placing_offside_kp = False
+                if hasattr(self, "add_keypoint_btn"):
+                    self.add_keypoint_btn.config(text="Add keypoint")
 
         self.display(img)
 
@@ -931,6 +947,89 @@ class OffsideApp:
         self.selected_box = None
 
         self.show_step()
+
+    def delete_selected_keypoint(self):
+
+        if self.selected_kp is None:
+            return
+
+        kp_type, idx = self.selected_kp
+
+        if kp_type == "attacker" and idx is not None:
+            det = self.state["detections"][idx]
+            det.pop("manual_offside_kp", None)
+            det.pop("offside_keypoint", None)
+            self.selected_kp = None
+            self.dragging_kp = False
+            self.recompute_offside()
+            self.show_step()
+            return
+
+        if kp_type == "defender":
+            self.manual_last_defender_kp = None
+            self.selected_kp = None
+            self.dragging_kp = False
+            self.recompute_offside()
+            self.show_step()
+            return
+
+    def toggle_add_keypoint_mode(self):
+        self.placing_offside_kp = not self.placing_offside_kp
+        if hasattr(self, "add_keypoint_btn"):
+            self.add_keypoint_btn.config(
+                text="Cancel add keypoint" if self.placing_offside_kp else "Add keypoint"
+            )
+
+    def place_offside_keypoint_at(self, x, y):
+        if self.original_img is None:
+            return False
+
+        attackers = []
+        attack_info = self.state.get("attack_info") or {}
+        attacking_team = attack_info.get("attacking_team")
+
+        for idx, label in enumerate(self.state.get("team_labels", [])):
+            if attacking_team is None or label == attacking_team:
+                attackers.append(idx)
+
+        if not attackers:
+            attackers = list(range(len(self.state.get("detections", []))))
+
+        if not attackers:
+            return False
+
+        def center_dist(idx):
+            x1, y1, x2, y2 = self.state["detections"][idx]["bbox"]
+            cx = (x1 + x2) / 2.0
+            cy = (y1 + y2) / 2.0
+            return (cx - x) ** 2 + (cy - y) ** 2
+
+        candidates = []
+        inside_candidates = []
+        for idx in attackers:
+            x1, y1, x2, y2 = self.state["detections"][idx]["bbox"]
+            if x1 <= x <= x2 and y1 <= y <= y2:
+                inside_candidates.append(idx)
+
+        if inside_candidates:
+            candidates = inside_candidates
+        else:
+            candidates = attackers
+
+        no_manual = [idx for idx in candidates if "manual_offside_kp" not in self.state["detections"][idx]]
+        if no_manual:
+            target_idx = min(no_manual, key=center_dist)
+        else:
+            target_idx = min(candidates, key=center_dist)
+
+        det = self.state["detections"][target_idx]
+        det["manual_offside_kp"] = (x, y)
+        det["offside_keypoint"] = (x, y)
+        self.selected_kp = ("attacker", target_idx)
+        self.dragging_kp = False
+        self.recompute_offside()
+        self.show_step()
+        return True
 
     def undo_box(self):
 
