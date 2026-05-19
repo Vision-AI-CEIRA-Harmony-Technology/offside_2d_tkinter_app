@@ -126,19 +126,42 @@ class OffsideLineComputer:
             # choose most advanced body part
             # --------------------------------------------------
 
+            vx, _ = vp
+
+            # VP on right side
+            vp_is_right = vx > frame_w / 2
+
+            # --------------------------------------------------
+            # Choose comparison direction according to:
+            # 1. attack direction
+            # 2. VP side
+            # --------------------------------------------------
+
             if attack_direction == "right":
 
-                best_proj = max(
-                    projected_candidates,
-                    key=lambda p: p[2]
-                )
+                if vp_is_right:
+                    best_proj = max(
+                        projected_candidates,
+                        key=lambda p: p[2]
+                    )
+                else:
+                    best_proj = min(
+                        projected_candidates,
+                        key=lambda p: p[2]
+                    )
 
             else:
 
-                best_proj = min(
-                    projected_candidates,
-                    key=lambda p: p[2]
-                )
+                if vp_is_right:
+                    best_proj = min(
+                        projected_candidates,
+                        key=lambda p: p[2]
+                    )
+                else:
+                    best_proj = max(
+                        projected_candidates,
+                        key=lambda p: p[2]
+                    )
 
             selected_kp, defender_ground_point, depth_metric = best_proj
 
@@ -201,18 +224,20 @@ class OffsideLineComputer:
         attack_direction = attack_info["direction"]
 
 
+        vx, _ = vp
+        vp_is_right = vx > W / 2
+
         if attack_info["direction"] == "right":
 
-            defender_candidates.sort(
-                key=lambda c: c[2],
-                reverse=True
-            )
+            reverse_sort = vp_is_right
 
         else:
+            reverse_sort = not vp_is_right
 
-            defender_candidates.sort(
-                key=lambda c: c[2]
-            )
+        defender_candidates.sort(
+            key=lambda c: c[2],
+            reverse=reverse_sort
+        )
 
         # selected defender
         if manual_last_defender_kp is not None:
@@ -365,6 +390,9 @@ class OffsideJudge:
 
         H, W = frame_shape[:2]
 
+        vx, _ = vp
+        vp_is_right = vx > W / 2
+
         line_mid_x = (
             offside_line[0][0] + offside_line[1][0]
         ) / 2
@@ -426,9 +454,18 @@ class OffsideJudge:
                 attack_direction = attack_info["direction"]
 
                 if attack_direction == "right":
-                    is_offside = depth_metric > offside_metric
+
+                    if vp_is_right:
+                        is_offside = depth_metric > offside_metric
+                    else:
+                        is_offside = depth_metric < offside_metric
+
                 else:
-                    is_offside = depth_metric < offside_metric
+
+                    if vp_is_right:
+                        is_offside = depth_metric < offside_metric
+                    else:
+                        is_offside = depth_metric > offside_metric
                 judgements[i] = "OFFSIDE" if is_offside else "ONSIDE"
 
             else:
@@ -453,15 +490,30 @@ class OffsideJudge:
                 if projected_candidates:
                     attack_direction = attack_info["direction"]
                     if attack_direction == "right":
-                        best = max(
-                            projected_candidates,
-                            key=lambda p: p[2]
-                        )
+
+                        if vp_is_right:
+                            best = max(
+                                projected_candidates,
+                                key=lambda p: p[2]
+                            )
+                        else:
+                            best = min(
+                                projected_candidates,
+                                key=lambda p: p[2]
+                            )
+
                     else:
-                        best = min(
-                            projected_candidates,
-                            key=lambda p: p[2]
-                        )
+
+                        if vp_is_right:
+                            best = min(
+                                projected_candidates,
+                                key=lambda p: p[2]
+                            )
+                        else:
+                            best = max(
+                                projected_candidates,
+                                key=lambda p: p[2]
+                            )
 
                     selected_kp, attacker_ground_point, adv_proj = best
 
@@ -471,9 +523,18 @@ class OffsideJudge:
                     attack_direction = attack_info["direction"]
 
                     if attack_direction == "right":
-                        is_offside = adv_proj > offside_metric
+
+                        if vp_is_right:
+                            is_offside = adv_proj > offside_metric
+                        else:
+                            is_offside = adv_proj < offside_metric
+
                     else:
-                        is_offside = adv_proj < offside_metric
+
+                        if vp_is_right:
+                            is_offside = adv_proj < offside_metric
+                        else:
+                            is_offside = adv_proj > offside_metric
                     judgements[i] = "OFFSIDE" if is_offside else "ONSIDE"
 
         # Force manual attacker as OFFSIDE if present
