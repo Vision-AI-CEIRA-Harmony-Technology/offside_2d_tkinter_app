@@ -118,14 +118,6 @@ class OffsideDetectionPipeline:
         offside_line, ground_line, all_def_lines, last_kp, projected_point, \
         projection_points, x_axis, judgements = result
         
-        #! debug: vp horizontal is drawn correctly
-        print({
-            "frame": frame,
-            "vanishing_point": vpv,
-            "vanishing_point_horiz": vph,
-            "offside_line": offside_line,
-            "ground_line": ground_line
-        })
 
         return {
             "frame": frame,

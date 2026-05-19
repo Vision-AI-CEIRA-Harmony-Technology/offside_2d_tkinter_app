@@ -308,9 +308,6 @@ class OffsideApp:
             raw_direction = self.attack_direction_var.get().strip().lower()
             if raw_direction in ("left", "right"):
                 manual_direction = raw_direction
-                manual_direction = "left"
-                #! debug
-                print("manual direction", manual_direction)
 
         if manual_direction is not None:
             attack_info["direction"] = manual_direction
@@ -342,9 +339,6 @@ class OffsideApp:
         self.state["attack_info"] = attack_info
         self.state["offside"] = result
 
-        #! debug
-        print(self.state["attack_info"])
-
     def recompute_offside(self):
 
         detections = self.state["detections"]
@@ -361,8 +355,6 @@ class OffsideApp:
         )
 
         self.state["offside"] = result
-        #! debug
-        print(self.state["attack_info"])
 
     def refresh_team_classification(self):
 
@@ -472,9 +464,6 @@ class OffsideApp:
             #     return
             # Update attack direction in state
             raw_direction = self.attack_direction_var.get().strip().lower()
-            raw_direction = "right"
-            #! debug
-            print("direction valid", raw_direction)
             if raw_direction in ("left", "right"):
                 self.state["attack_info"]["direction"] = raw_direction
 
@@ -718,10 +707,11 @@ class OffsideApp:
                     (x1, y1),
                     (x2, y2),
                     (0, 255, 255),
-                    2
+                    1,
+                    cv2.LINE_AA
                 )
-                cv2.circle(img, (x1, y1), 6, (0, 255, 255), -1)
-                cv2.circle(img, (x2, y2), 6, (0, 255, 255), -1)
+                cv2.circle(img, (x1, y1), 4, (0, 255, 255), -1, cv2.LINE_AA)
+                cv2.circle(img, (x2, y2), 4, (0, 255, 255), -1, cv2.LINE_AA)
 
             # draw temp line
             if self.temp_vp_line is not None:
@@ -733,10 +723,11 @@ class OffsideApp:
                     (x1, y1),
                     (x2, y2),
                     (255, 255, 0),
-                    2
+                    1,
+                    cv2.LINE_AA
                 )
-                cv2.circle(img, (x1, y1), 6, (0, 255, 255), -1)
-                cv2.circle(img, (x2, y2), 6, (0, 255, 255), -1)
+                cv2.circle(img, (x1, y1), 4, (0, 255, 255), -1, cv2.LINE_AA)
+                cv2.circle(img, (x2, y2), 4, (0, 255, 255), -1, cv2.LINE_AA)
 
             # show computed VP preview
             if len(self.manual_vp_lines) == 2:
@@ -753,7 +744,7 @@ class OffsideApp:
                     cv2.circle(
                         img,
                         (vx, vy),
-                        6,
+                        4,
                         (0, 0, 255),
                         -1
                     )
@@ -769,10 +760,11 @@ class OffsideApp:
                     (x1, y1),
                     (x2, y2),
                     (0, 255, 255),
-                    2
+                    1,
+                    cv2.LINE_AA
                 )
-                cv2.circle(img, (x1, y1), 6, (0, 255, 255), -1)
-                cv2.circle(img, (x2, y2), 6, (0, 255, 255), -1)
+                cv2.circle(img, (x1, y1), 4, (0, 255, 255), -1, cv2.LINE_AA)
+                cv2.circle(img, (x2, y2), 4, (0, 255, 255), -1, cv2.LINE_AA)
 
             # draw temp line
             if self.temp_vph_line is not None:
@@ -784,10 +776,11 @@ class OffsideApp:
                     (x1, y1),
                     (x2, y2),
                     (255, 255, 0),
-                    2
+                    1,
+                    cv2.LINE_AA
                 )
-                cv2.circle(img, (x1, y1), 6, (0, 255, 255), -1)
-                cv2.circle(img, (x2, y2), 6, (0, 255, 255), -1)
+                cv2.circle(img, (x1, y1), 4, (0, 255, 255), -1, cv2.LINE_AA)
+                cv2.circle(img, (x2, y2), 4, (0, 255, 255), -1, cv2.LINE_AA)
 
             # show computed VP preview
             if len(self.manual_vph_lines) == 2:
@@ -804,7 +797,7 @@ class OffsideApp:
                     cv2.circle(
                         img,
                         (vx, vy),
-                        6,
+                        4,
                         (0, 0, 255),
                         -1
                     )
@@ -818,8 +811,6 @@ class OffsideApp:
                 cv2.rectangle(img, (x1, y1), (x2, y2), color, 2)
 
         elif self.current_step == 6:
-            #! debug
-            print("AT STEP6 KPT EDIT")
             off = self.state["offside"]
             if off:
                 pipeline = self.get_pipeline()
