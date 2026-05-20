@@ -374,42 +374,6 @@ def on_mouse_drag(app, e):
         # DRAG ENDPOINT
         # -----------------------------
         if app.selected_vph_line is not None and app.dragging_vph_endpoint is not None:
-
-            p1, p2 = app.manual_vph_lines[app.selected_vph_line]
-
-            if app.dragging_vp_endpoint == 0:
-                p1 = (x, y)
-            else:
-                p2 = (x, y)
-
-            app.manual_vph_lines[app.selected_vph_line] = (p1, p2)
-
-            app.show_step()
-
-            return
-
-        # -----------------------------
-        # MOVE WHOLE LINE
-        # -----------------------------
-        if app.dragging_vph_line:
-
-            dx = x - app.start_x
-            dy = y - app.start_y
-
-            p1, p2 = app.manual_vph_lines[app.selected_vph_line]
-
-            p1 = (p1[0] + dx, p1[1] + dy)
-            p2 = (p2[0] + dx, p2[1] + dy)
-
-            app.manual_vph_lines[app.selected_vph_line] = (p1, p2)
-
-            app.start_x = x
-            app.start_y = y
-
-            app.show_step()
-
-            return
-        if app.selected_vph_line is not None and app.dragging_vph_endpoint is not None:
             p1, p2 = app.manual_vph_lines[app.selected_vph_line]
             if app.dragging_vph_endpoint == 0:
                 p1 = (x, y)
@@ -419,6 +383,9 @@ def on_mouse_drag(app, e):
             app.show_step()
             return
 
+        # -----------------------------
+        # MOVE WHOLE LINE
+        # -----------------------------
         if app.dragging_vph_line:
             dx = x - app.start_x
             dy = y - app.start_y
