@@ -412,6 +412,8 @@ class VisualizationRenderer:
         """Initialize visualization renderer."""
         self.keypoint_viz = KeypointVisualizer()
         self.overlay_renderer = OverlayRenderer()
+        self.dragging_offside_kp = None
+        self.dragging_projection_kp = None
     
     def render_main_output(
         self,

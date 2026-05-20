@@ -1,5 +1,6 @@
 import cv2
 from offside_logique.team_classifier import TeamClassifier
+from offside_logique.utils import GeometryUtils
 
 
 def canvas_to_image(app, x, y):
@@ -449,6 +450,28 @@ def on_mouse_drag(app, e):
             app.manual_last_defender_kp = (x, y)
             app.recompute_offside()
 
+        elif kp_type == "projected":
+            # Move only the projected ground point and update offside line/ground line
+            result = app.state.get("offside")
+            if result is not None:
+                offside_line, ground_line, all_def_lines, last_kp, projected_point, projection_points, x_axis, judgements = result
+                vp = app.state.get("vp")
+                if vp is not None:
+                    H, W = app.original_img.shape[:2]
+                    new_projected = (x, y)
+                    new_offside_line = GeometryUtils.extend_line_to_frame(vp, new_projected, W, H)
+                    new_ground_line = new_offside_line
+                    app.state["offside"] = (
+                        new_offside_line,
+                        new_ground_line,
+                        all_def_lines,
+                        last_kp,
+                        new_projected,
+                        projection_points,
+                        x_axis,
+                        judgements,
+                    )
+
         app.show_step()
         return
     
@@ -619,6 +642,12 @@ def detect_keypoint_hit(app, x, y, radius=20):
             dist = ((lx - x) ** 2 + (ly - y) ** 2) ** 0.5
             if dist <= radius:
                 return ("defender", None)
+        # PROJECTED GROUND POINT (draggable independently — moves only projection & line)
+        if projected_point is not None:
+            px, py = projected_point[0], projected_point[1]
+            distp = ((px - x) ** 2 + (py - y) ** 2) ** 0.5
+            if distp <= radius:
+                return ("projected", None)
 
     return None
 
@@ -664,6 +693,13 @@ def on_mouse_up(app, e):
 
         app.dragging_kp = False
         app.selected_kp = None
+        return
+
+    # FINISH KEYPOINT DRAG (STEP 6)
+    if app.current_step == 6:
+        app.dragging_kp = False
+        app.selected_kp = None
+        app.show_step()
         return
 
     # ROI SELECTION STEP
