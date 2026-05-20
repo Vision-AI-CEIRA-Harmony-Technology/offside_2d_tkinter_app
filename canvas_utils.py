@@ -4,6 +4,18 @@ from offside_logique.utils import GeometryUtils
 
 
 def canvas_to_image(app, x, y):
+    # Adjust for zoom if enabled (step 6 only)
+    zoom_level = getattr(app, "zoom_level", 1.0)
+    if app.current_step == 6 and zoom_level > 1.0:
+        crop_x1 = getattr(app, "zoom_crop_x1", 0)
+        crop_y1 = getattr(app, "zoom_crop_y1", 0)
+        # Convert canvas coords to cropped image coords, then add crop offset
+        x_in_crop = (x - app.offset_x) / app.display_scale
+        y_in_crop = (y - app.offset_y) / app.display_scale
+        ix = int(x_in_crop + crop_x1)
+        iy = int(y_in_crop + crop_y1)
+        return ix, iy
+    
     ix = (x - app.offset_x) / app.display_scale
     iy = (y - app.offset_y) / app.display_scale
     return int(ix), int(iy)
@@ -450,6 +462,25 @@ def on_mouse_drag(app, e):
             target_det = app.state["detections"][idx]
             target_det["offside_proj_point"] = (x, y)
 
+            result = app.state.get("offside")
+            if result is not None:
+                offside_line, ground_line, all_def_lines, last_kp, projected_point, projection_points, x_axis, judgements = result
+                if not any(j == "OFFSIDE" for j in judgements):
+                    vp = app.state.get("vp")
+                    if vp is not None:
+                        H, W = app.original_img.shape[:2]
+                        new_offside_line = GeometryUtils.extend_line_to_frame(vp, (x, y), W, H)
+                        app.state["offside"] = (
+                            new_offside_line,
+                            new_offside_line,
+                            all_def_lines,
+                            last_kp,
+                            projected_point,
+                            projection_points,
+                            x_axis,
+                            judgements,
+                        )
+
         elif kp_type == "defender":
             app.manual_last_defender_kp = (x, y)
             app.recompute_offside()
@@ -665,6 +696,40 @@ def detect_keypoint_hit(app, x, y, radius=20):
                 return ("projected", None)
 
     return None
+
+def on_mouse_scroll(app, e):
+    """Handle mouse wheel zoom for step 6."""
+    if app.current_step != 6:
+        return
+    
+    # Determine zoom direction
+    if e.num == 5 or e.delta < 0:  # Scroll down / zoom out
+        zoom_delta = 0.9
+    else:  # Scroll up / zoom in
+        zoom_delta = 1.1
+    
+    x, y = canvas_to_image(app, e.x, e.y)
+    
+    old_zoom = app.zoom_level
+    new_zoom = max(1.0, min(5.0, app.zoom_level * zoom_delta))
+    
+    if new_zoom != old_zoom:
+        h, w = app.original_img.shape[:2]
+        
+        if app.zoom_center_x is None or app.zoom_center_y is None:
+            app.zoom_center_x = w // 2
+            app.zoom_center_y = h // 2
+        
+        # Adjust zoom center to keep mouse position stable
+        app.zoom_center_x = int(app.zoom_center_x + (x - app.zoom_center_x) * (1 - old_zoom / new_zoom))
+        app.zoom_center_y = int(app.zoom_center_y + (y - app.zoom_center_y) * (1 - old_zoom / new_zoom))
+        
+        # Clamp zoom center to image bounds
+        app.zoom_center_x = max(0, min(w - 1, app.zoom_center_x))
+        app.zoom_center_y = max(0, min(h - 1, app.zoom_center_y))
+        
+        app.zoom_level = new_zoom
+        app.show_step()
 
 def on_mouse_up(app, e):
     # -----------------------------

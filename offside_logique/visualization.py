@@ -74,13 +74,15 @@ class KeypointVisualizer:
                 continue
 
             okx, oky = det["offside_keypoint"]
+            color = OFFSIDE_COLOR if judgement == "OFFSIDE" else ONSIDE_COLOR
+            label = "Potential Offside" if judgement == "OFFSIDE" else "Closest Attacker"
 
             # keypoint
             cv2.circle(
                 out,
                 (int(okx), int(oky)),
                 big_point_radius,
-                OFFSIDE_COLOR,
+                color,
                 -1
             )
 
@@ -88,18 +90,18 @@ class KeypointVisualizer:
                 out_save,
                 (int(okx), int(oky)),
                 big_point_radius,
-                OFFSIDE_COLOR,
+                color,
                 -1
             )
 
             # label
             cv2.putText(
                 out,
-                "Potential Offside",
+                label,
                 (int(okx) + 3, int(oky) - 35),
                 cv2.FONT_HERSHEY_SIMPLEX,
                 text_scale,
-                OFFSIDE_COLOR,
+                color,
                 text_thickness
             )
 
@@ -115,7 +117,7 @@ class KeypointVisualizer:
                 out,
                 (int(okx), int(oky)),
                 (px, py),
-                OFFSIDE_COLOR,
+                color,
                 line_thickness,
                 cv2.LINE_AA
             )
@@ -124,7 +126,7 @@ class KeypointVisualizer:
                 out_save,
                 (int(okx), int(oky)),
                 (px, py),
-                OFFSIDE_COLOR,
+                color,
                 line_thickness,
                 cv2.LINE_AA
             )
@@ -133,7 +135,7 @@ class KeypointVisualizer:
                 out,
                 (px, py),
                 point_radius,
-                OFFSIDE_COLOR,
+                color,
                 -1
             )
 
@@ -141,7 +143,7 @@ class KeypointVisualizer:
                 out_save,
                 (px, py),
                 point_radius,
-                OFFSIDE_COLOR,
+                color,
                 -1
             )
 
@@ -184,7 +186,7 @@ class KeypointVisualizer:
                         out,
                         clipped_lineh[0],
                         clipped_lineh[1],
-                        OFFSIDE_COLOR,
+                        color,
                         line_thickness,
                         dash_length,
                         gap_length
@@ -195,7 +197,7 @@ class KeypointVisualizer:
                         out_save,
                         clipped_line[0],
                         clipped_line[1],
-                        OFFSIDE_COLOR,
+                        color,
                         line_thickness,
                         cv2.LINE_AA
                     )
@@ -207,7 +209,7 @@ class KeypointVisualizer:
                         out,
                         clipped_line[0],
                         clipped_line[1],
-                        OFFSIDE_COLOR,
+                        color,
                         line_thickness,
                         dash_length,
                         gap_length

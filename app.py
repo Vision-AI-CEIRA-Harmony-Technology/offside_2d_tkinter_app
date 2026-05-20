@@ -24,6 +24,7 @@ from canvas_utils import (
     on_mouse_drag,
     on_mouse_up,
     on_right_click,
+    on_mouse_scroll,
 )
 
 
@@ -70,6 +71,7 @@ class OffsideApp:
         self.on_mouse_drag = lambda e: on_mouse_drag(self, e)
         self.on_mouse_up = lambda e: on_mouse_up(self, e)
         self.on_right_click = lambda e: on_right_click(self, e)
+        self.on_mouse_scroll = lambda e: on_mouse_scroll(self, e)
 
         self.canvas = build_app_ui(root, self)
 
@@ -119,6 +121,13 @@ class OffsideApp:
         self.selected_vph_line = None
         self.dragging_vph_endpoint = None
         self.dragging_vph_line = False
+
+        # Zoom state for step 6
+        self.zoom_level = 1.0
+        self.zoom_center_x = None
+        self.zoom_center_y = None
+        self.zoom_crop_x1 = 0
+        self.zoom_crop_y1 = 0
 
         self.final_render = None
 
@@ -251,6 +260,13 @@ class OffsideApp:
         self.selected_vph_line = None
         self.dragging_vph_endpoint = None
         self.dragging_vph_line = False
+
+        # Reset zoom
+        self.zoom_level = 1.0
+        self.zoom_center_x = None
+        self.zoom_center_y = None
+        self.zoom_crop_x1 = 0
+        self.zoom_crop_y1 = 0
 
         # Reset attack direction input
         if hasattr(self, "attack_direction_var"):
@@ -524,11 +540,42 @@ class OffsideApp:
         if canvas_w < 10 or canvas_h < 10:
             return
         h, w = img.shape[:2]
-        scale = min(canvas_w / w, canvas_h / h)
+        
+        # Handle zoom for step 6
+        zoom_level = getattr(self, "zoom_level", 1.0)
+        if self.current_step == 6 and zoom_level > 1.0:
+            zoom_cx = getattr(self, "zoom_center_x", None)
+            zoom_cy = getattr(self, "zoom_center_y", None)
+            if zoom_cx is None or zoom_cy is None:
+                zoom_cx = w // 2
+                zoom_cy = h // 2
+                self.zoom_center_x = zoom_cx
+                self.zoom_center_y = zoom_cy
+            
+            zoomed_w = int(canvas_w / zoom_level)
+            zoomed_h = int(canvas_h / zoom_level)
+            
+            x1 = max(0, zoom_cx - zoomed_w // 2)
+            y1 = max(0, zoom_cy - zoomed_h // 2)
+            x2 = min(w, x1 + zoomed_w)
+            y2 = min(h, y1 + zoomed_h)
+            
+            # Save crop coordinates for canvas_to_image conversion
+            self.zoom_crop_x1 = x1
+            self.zoom_crop_y1 = y1
+            
+            img_crop = img[y1:y2, x1:x2]
+            scale = min(canvas_w / (x2 - x1), canvas_h / (y2 - y1))
+        else:
+            self.zoom_crop_x1 = 0
+            self.zoom_crop_y1 = 0
+            scale = min(canvas_w / w, canvas_h / h)
+            img_crop = img
+        
         self.display_scale = scale
-        new_w = int(w * scale)
-        new_h = int(h * scale)
-        resized = cv2.resize(img, (new_w, new_h))
+        new_w = int(img_crop.shape[1] * scale)
+        new_h = int(img_crop.shape[0] * scale)
+        resized = cv2.resize(img_crop, (new_w, new_h))
         self.offset_x = (canvas_w - new_w) // 2
         self.offset_y = (canvas_h - new_h) // 2
         rgb = cv2.cvtColor(resized, cv2.COLOR_BGR2RGB)
