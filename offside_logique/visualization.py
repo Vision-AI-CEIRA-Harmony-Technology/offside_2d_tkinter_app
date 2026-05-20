@@ -74,6 +74,7 @@ class KeypointVisualizer:
 
             okx, oky = det["offside_keypoint"]
 
+            # keypoint
             cv2.circle(
                 out,
                 (int(okx), int(oky)),
@@ -90,6 +91,7 @@ class KeypointVisualizer:
                 -1
             )
 
+            # label
             cv2.putText(
                 out,
                 "Potential Offside",
@@ -107,7 +109,7 @@ class KeypointVisualizer:
 
             px, py = int(proj[0]), int(proj[1])
 
-            # small projection connection
+            # local connection
             cv2.line(
                 out,
                 (int(okx), int(oky)),
@@ -128,6 +130,14 @@ class KeypointVisualizer:
 
             cv2.circle(
                 out,
+                (px, py),
+                point_radius,
+                OFFSIDE_COLOR,
+                -1
+            )
+
+            cv2.circle(
+                out_save,
                 (px, py),
                 point_radius,
                 OFFSIDE_COLOR,
@@ -165,9 +175,10 @@ class KeypointVisualizer:
                     vanishing_point_horiz
                 )
 
-                # preview horizontal dashed
+                # horizontal VP line
                 if clipped_lineh is not None:
 
+                    # preview dashed
                     GeometryUtils.draw_dashed_line(
                         out,
                         clipped_lineh[0],
@@ -178,17 +189,17 @@ class KeypointVisualizer:
                         gap_length
                     )
 
-                    # save image horizontal solid
+                    # save solid
                     cv2.line(
                         out_save,
-                        clipped_lineh[0],
-                        clipped_lineh[1],
+                        clipped_line[0],
+                        clipped_line[1],
                         OFFSIDE_COLOR,
                         line_thickness,
                         cv2.LINE_AA
                     )
 
-                # preview vertical dashed
+                # vertical VP line => preview only
                 if clipped_line is not None:
 
                     GeometryUtils.draw_dashed_line(
@@ -239,6 +250,41 @@ class KeypointVisualizer:
 
             px, py = int(projected_point[0]), int(projected_point[1])
 
+            # local connection
+            cv2.line(
+                out,
+                (int(last_kp[0]), int(last_kp[1])),
+                (px, py),
+                LAST_DEF_KEYPOINT_COLOR,
+                line_thickness,
+                cv2.LINE_AA
+            )
+
+            cv2.line(
+                out_save,
+                (int(last_kp[0]), int(last_kp[1])),
+                (px, py),
+                LAST_DEF_KEYPOINT_COLOR,
+                line_thickness,
+                cv2.LINE_AA
+            )
+
+            cv2.circle(
+                out,
+                (px, py),
+                point_radius,
+                LAST_DEF_KEYPOINT_COLOR,
+                -1
+            )
+
+            cv2.circle(
+                out_save,
+                (px, py),
+                point_radius,
+                LAST_DEF_KEYPOINT_COLOR,
+                -1
+            )
+
             vp_x, vp_y = map(int, vanishing_point)
             vph_x, vph_y = map(int, vanishing_point_horiz)
 
@@ -270,9 +316,10 @@ class KeypointVisualizer:
                     vanishing_point_horiz
                 )
 
-                # preview horizontal dashed
+                # horizontal VP line
                 if clipped_lineh is not None:
 
+                    # preview dashed
                     GeometryUtils.draw_dashed_line(
                         out,
                         clipped_lineh[0],
@@ -283,17 +330,17 @@ class KeypointVisualizer:
                         gap_length
                     )
 
-                    # save image horizontal solid
+                    # save solid
                     cv2.line(
                         out_save,
-                        clipped_lineh[0],
-                        clipped_lineh[1],
+                        clipped_line[0],
+                        clipped_line[1],
                         LAST_DEF_KEYPOINT_COLOR,
                         line_thickness,
                         cv2.LINE_AA
                     )
 
-                # preview vertical dashed
+                # vertical VP line => preview only
                 if clipped_line is not None:
 
                     GeometryUtils.draw_dashed_line(
@@ -305,41 +352,6 @@ class KeypointVisualizer:
                         dash_length,
                         gap_length
                     )
-
-            # local connection
-            cv2.line(
-                out,
-                (int(last_kp[0]), int(last_kp[1])),
-                (px, py),
-                LAST_DEF_KEYPOINT_COLOR,
-                line_thickness,
-                cv2.LINE_AA
-            )
-
-            cv2.circle(
-                out,
-                (px, py),
-                point_radius,
-                LAST_DEF_KEYPOINT_COLOR,
-                -1
-            )
-
-            cv2.line(
-                out_save,
-                (int(last_kp[0]), int(last_kp[1])),
-                (px, py),
-                LAST_DEF_KEYPOINT_COLOR,
-                line_thickness,
-                cv2.LINE_AA
-            )
-
-            cv2.circle(
-                out_save,
-                (px, py),
-                point_radius,
-                LAST_DEF_KEYPOINT_COLOR,
-                -1
-            )
 
         return out, out_save
 
