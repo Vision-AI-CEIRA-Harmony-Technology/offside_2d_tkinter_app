@@ -124,6 +124,26 @@ class OffsideApp:
 
         self.selected_bboxes = set()
 
+    def delete_selected_roi(self):
+
+        if self.selected_roi is None:
+            return
+
+        self.team_rois[self.selected_roi] = None
+        self.team_centers[self.selected_roi] = None
+
+        # allow re-selection
+        self.current_team_selection = min(
+            self.current_team_selection,
+            self.selected_roi
+        )
+
+        self.selected_roi = None
+        self.roi_drag_mode = None
+        self.roi_resize_corner = None
+
+        self.show_step()
+
     def get_pipeline(self):
         if self.pipeline is None:
             self.pipeline = OffsideDetectionPipeline(
@@ -592,6 +612,25 @@ class OffsideApp:
             return
 
         img = self.original_img.copy()
+        h, w = img.shape[:2]
+
+        # Reference resolution = 1280x720
+        ref_diag = (1280**2 + 720**2) ** 0.5
+        img_diag = (w**2 + h**2) ** 0.5
+
+        self.ui_scale = np.clip(
+            img_diag / ref_diag,
+            0.18,
+            3.0
+        )
+
+        # reusable drawing sizes
+        self.line_thickness = max(1, int(2 * self.ui_scale))
+        self.small_thickness = max(1, int(1 * self.ui_scale))
+        self.handle_radius = max(2, int(5 * self.ui_scale))
+        self.point_radius = max(1, int(4 * self.ui_scale))
+        self.text_scale = max(0.35, 0.55 * self.ui_scale)
+        self.text_thickness = max(1, int(2 * self.ui_scale))
         if self.current_step == 1:
             for i, det in enumerate(self.state["detections"]):
 
@@ -609,13 +648,17 @@ class OffsideApp:
                 else:
                     color = (0, 255, 0)
 
-                cv2.rectangle(img, (x1, y1), (x2, y2), color, 2)
+                cv2.rectangle(img, (x1, y1), (x2, y2), color, self.line_thickness)
 
-                draw_handles(img, (x1, y1, x2, y2))
+                draw_handles(
+                    img,
+                    (x1, y1, x2, y2),
+                    self.handle_radius
+                )
             
             if self.temp_box:
                 x1, y1, x2, y2 = self.temp_box
-                cv2.rectangle(img, (x1, y1), (x2, y2), (0, 255, 255), 1)
+                cv2.rectangle(img, (x1, y1), (x2, y2), (0, 255, 255), self.line_thickness)
 
         elif self.current_step == 2:
             # instruction = (
@@ -668,9 +711,13 @@ class OffsideApp:
                     (x1, y1),
                     (x2, y2),
                     color,
-                    2
+                    self.line_thickness
                 )
-                draw_handles(img, (x1, y1, x2, y2))
+                draw_handles(
+                    img,
+                    (x1, y1, x2, y2),
+                    self.handle_radius
+                )
 
                 label = (
                     "Defending Team"
@@ -683,9 +730,9 @@ class OffsideApp:
                     label,
                     (x1, y1 - 10),
                     cv2.FONT_HERSHEY_SIMPLEX,
-                    0.7,
+                    self.text_scale,
                     color,
-                    2
+                    self.text_thickness,
                 )
 
                 #############################
@@ -713,7 +760,7 @@ class OffsideApp:
                     (x1, y1),
                     (x2, y2),
                     (0, 255, 255),
-                    2,
+                    self.line_thickness,
                 )
 
 
@@ -729,11 +776,11 @@ class OffsideApp:
                     (x1, y1),
                     (x2, y2),
                     (0, 255, 255),
-                    1,
+                    self.small_thickness,
                     cv2.LINE_AA
                 )
-                cv2.circle(img, (x1, y1), 4, (0, 255, 255), -1, cv2.LINE_AA)
-                cv2.circle(img, (x2, y2), 4, (0, 255, 255), -1, cv2.LINE_AA)
+                cv2.circle(img, (x1, y1), self.point_radius, (0, 255, 255), -1, cv2.LINE_AA)
+                cv2.circle(img, (x2, y2), self.point_radius, (0, 255, 255), -1, cv2.LINE_AA)
 
             # draw temp line
             if self.temp_vp_line is not None:
@@ -745,11 +792,11 @@ class OffsideApp:
                     (x1, y1),
                     (x2, y2),
                     (255, 255, 0),
-                    1,
+                    self.small_thickness,
                     cv2.LINE_AA
                 )
-                cv2.circle(img, (x1, y1), 4, (0, 255, 255), -1, cv2.LINE_AA)
-                cv2.circle(img, (x2, y2), 4, (0, 255, 255), -1, cv2.LINE_AA)
+                cv2.circle(img, (x1, y1), self.point_radius, (0, 255, 255), -1, cv2.LINE_AA)
+                cv2.circle(img, (x2, y2), self.point_radius, (0, 255, 255), -1, cv2.LINE_AA)
 
             # show computed VP preview
             if len(self.manual_vp_lines) == 2:
@@ -766,7 +813,7 @@ class OffsideApp:
                     cv2.circle(
                         img,
                         (vx, vy),
-                        4,
+                        self.point_radius,
                         (0, 0, 255),
                         -1
                     )
@@ -782,11 +829,11 @@ class OffsideApp:
                     (x1, y1),
                     (x2, y2),
                     (0, 255, 255),
-                    1,
+                    self.small_thickness,
                     cv2.LINE_AA
                 )
-                cv2.circle(img, (x1, y1), 4, (0, 255, 255), -1, cv2.LINE_AA)
-                cv2.circle(img, (x2, y2), 4, (0, 255, 255), -1, cv2.LINE_AA)
+                cv2.circle(img, (x1, y1), self.point_radius, (0, 255, 255), -1, cv2.LINE_AA)
+                cv2.circle(img, (x2, y2), self.point_radius, (0, 255, 255), -1, cv2.LINE_AA)
 
             # draw temp line
             if self.temp_vph_line is not None:
@@ -798,11 +845,11 @@ class OffsideApp:
                     (x1, y1),
                     (x2, y2),
                     (255, 255, 0),
-                    1,
+                    self.small_thickness,
                     cv2.LINE_AA
                 )
-                cv2.circle(img, (x1, y1), 4, (0, 255, 255), -1, cv2.LINE_AA)
-                cv2.circle(img, (x2, y2), 4, (0, 255, 255), -1, cv2.LINE_AA)
+                cv2.circle(img, (x1, y1), self.point_radius, (0, 255, 255), -1, cv2.LINE_AA)
+                cv2.circle(img, (x2, y2), self.point_radius, (0, 255, 255), -1, cv2.LINE_AA)
 
             # show computed VP preview
             if len(self.manual_vph_lines) == 2:
@@ -819,7 +866,7 @@ class OffsideApp:
                     cv2.circle(
                         img,
                         (vx, vy),
-                        4,
+                        self.point_radius,
                         (0, 0, 255),
                         -1
                     )
@@ -830,7 +877,7 @@ class OffsideApp:
                 x1, y1, x2, y2 = det["bbox"]
                 if label == 0: color = tuple(int(c) for c in self.state["team_color_0"])
                 else: color = tuple(int(c) for c in self.state["team_color_1"])
-                cv2.rectangle(img, (x1, y1), (x2, y2), color, 2)
+                cv2.rectangle(img, (x1, y1), (x2, y2), color, self.line_thickness)
 
         elif self.current_step == 6:
             off = self.state["offside"]
@@ -872,21 +919,7 @@ class OffsideApp:
 
                     kx, ky = int(kp[0]), int(kp[1])
 
-                    cv2.circle(
-                        img,
-                        (kx, ky),
-                        2,
-                        (0, 255, 255),
-                        -1
-                    )
-
-                    cv2.circle(
-                        img,
-                        (kx, ky),
-                        2,
-                        (255, 255, 255),
-                        -1
-                    )
+                    
             self.final_render = img_save.copy()
 
         if self.current_step == 2:
