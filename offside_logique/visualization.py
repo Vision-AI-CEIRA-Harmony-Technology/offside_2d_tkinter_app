@@ -50,6 +50,24 @@ class KeypointVisualizer:
         """
         out = frame.copy()
         out_save = frame.copy()
+
+        H, W = frame.shape[:2]
+
+        ref_diag = (1280**2 + 720**2) ** 0.5
+        img_diag = (W**2 + H**2) ** 0.5
+
+        ui_scale = np.clip(
+            img_diag / ref_diag,
+            0.18,
+            3.0
+        )
+
+        line_thickness = max(1, int(1.5 * ui_scale))
+        point_radius = max(1, int(2 * ui_scale))
+        big_point_radius = min(5, int(3 * ui_scale))
+
+        text_scale = max(0.35, 0.55 * ui_scale)
+        text_thickness = max(1, int(1.2 * ui_scale))
         # if offside_line is not None:
         #     cv2.line(out, offside_line[0], offside_line[1], (0, 255, 0), 1, cv2.LINE_AA)
         if all_keypoints:
@@ -85,18 +103,11 @@ class KeypointVisualizer:
                     cv2.circle(
                         out,
                         (int(kx), int(ky)),
-                        2,   # smaller size
+                        big_point_radius,   # smaller size
                         OFFSIDE_COLOR,
-                        3
+                        -1
                     )
-                    # smaller keypoint
-                    cv2.circle(
-                        out_save,
-                        (int(kx), int(ky)),
-                        2,   # smaller size
-                        OFFSIDE_COLOR,
-                        3
-                    )
+                    
         for det_idx, det in enumerate(detections):
             judgement = None
             if judgements is not None and det_idx < len(judgements):
@@ -110,21 +121,13 @@ class KeypointVisualizer:
                 cv2.circle(
                     out,
                     (int(okx), int(oky)),
-                    2,
+                    big_point_radius,
                     OFFSIDE_COLOR,
-                    3
+                    -1
                 )
                 cv2.putText(out, "Potential Offside", (int(okx) + 3, int(oky) - 35),
-                           cv2.FONT_HERSHEY_SIMPLEX, 0.8, OFFSIDE_COLOR, 1)
+                           cv2.FONT_HERSHEY_SIMPLEX, text_scale, OFFSIDE_COLOR, text_thickness)
                 
-                # smaller point
-                cv2.circle(
-                    out_save,
-                    (int(okx), int(oky)),
-                    2,
-                    OFFSIDE_COLOR,
-                    3
-                )
                 # cv2.putText(out_save, "Potential Offside", (int(okx) + 3, int(oky) - 35),
                 #            cv2.FONT_HERSHEY_SIMPLEX, 0.8, OFFSIDE_COLOR, 1)
                 # proj = det.get("offside_proj_point")
@@ -230,21 +233,14 @@ class KeypointVisualizer:
             lx, ly = int(last_kp[0]), int(last_kp[1])
 
             cv2.circle(
-                out,
-                (lx, ly),
-                2,
-                LAST_DEF_KEYPOINT_COLOR,
-                3
-            )
-            cv2.circle(
                 out_save,
                 (lx, ly),
-                2,
+                big_point_radius,
                 LAST_DEF_KEYPOINT_COLOR,
-                3
+                -1
             )
             cv2.putText(out, "Last Def", (lx + 5, ly - 35),
-                       cv2.FONT_HERSHEY_SIMPLEX, 0.8, LAST_DEF_KEYPOINT_COLOR, 1)
+                       cv2.FONT_HERSHEY_SIMPLEX, text_scale, LAST_DEF_KEYPOINT_COLOR, text_thickness)
             
         # if last_kp is not None and projected_point is not None:
         #     px, py = int(projected_point[0]), int(projected_point[1])
