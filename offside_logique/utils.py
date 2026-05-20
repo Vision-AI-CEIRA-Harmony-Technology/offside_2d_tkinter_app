@@ -38,6 +38,52 @@ class ColorUtils:
 class GeometryUtils:
     """Utility class for geometric operations."""
     @staticmethod
+    def draw_dashed_line(
+        img,
+        pt1,
+        pt2,
+        color,
+        thickness=1,
+        dash_length=15,
+        gap_length=10
+    ):
+
+        x1, y1 = pt1
+        x2, y2 = pt2
+
+        dx = x2 - x1
+        dy = y2 - y1
+
+        length = int(np.hypot(dx, dy))
+
+        if length == 0:
+            return
+
+        vx = dx / length
+        vy = dy / length
+
+        step = dash_length + gap_length
+
+        for i in range(0, length, step):
+
+            start_x = int(x1 + vx * i)
+            start_y = int(y1 + vy * i)
+
+            end_i = min(i + dash_length, length)
+
+            end_x = int(x1 + vx * end_i)
+            end_y = int(y1 + vy * end_i)
+
+            cv2.line(
+                img,
+                (start_x, start_y),
+                (end_x, end_y),
+                color,
+                thickness,
+                cv2.LINE_AA
+            )
+
+    @staticmethod
     def clip_line_to_pitch_only_on_vp_side(
         line_pts,
         mask,
