@@ -239,6 +239,9 @@ def build_app_ui(root, app):
     canvas.bind("<B1-Motion>", lambda e: app.on_mouse_drag(e))
     canvas.bind("<ButtonRelease-1>", lambda e: app.on_mouse_up(e))
     canvas.bind("<Button-3>", lambda e: app.on_right_click(e))
+    canvas.bind("<MouseWheel>", lambda e: app.on_mouse_scroll(e))
+    canvas.bind("<Button-4>", lambda e: app.on_mouse_scroll(e))
+    canvas.bind("<Button-5>", lambda e: app.on_mouse_scroll(e))
 
     def handle_delete(event):
 
