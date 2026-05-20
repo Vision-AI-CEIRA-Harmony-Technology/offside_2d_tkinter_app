@@ -171,21 +171,6 @@ def build_app_ui(root, app):
     app.attack_direction_var.set("")
 ################################
     # -----------------------------
-    # STEP INFO
-    # -----------------------------
-    app.step_label = ttk.Label(
-        main,
-        text="Step 0 - Upload image",
-        style="Dark.TLabel"
-    )
-
-    app.step_label.pack(
-        anchor="w",
-        padx=25,
-        pady=(0, 10)
-    )
-
-    # -----------------------------
     # CANVAS FRAME
     # -----------------------------
     canvas_frame = tk.Frame(
@@ -217,19 +202,34 @@ def build_app_ui(root, app):
     bottom = ttk.Frame(main, style="Dark.TFrame")
     bottom.pack(fill="x", padx=20, pady=15)
 
-    ttk.Button(
+    # Configure grid so center column expands
+    bottom.columnconfigure(0, weight=1)
+    bottom.columnconfigure(1, weight=2)
+    bottom.columnconfigure(2, weight=1)
+
+    prev_btn = ttk.Button(
         bottom,
         text="◀ Previous",
         command=app.prev_step,
         style="Nav.TButton"
-    ).pack(side="left")
+    )
+    prev_btn.grid(row=0, column=0, sticky="w")
 
-    ttk.Button(
+    app.step_label = ttk.Label(
+        bottom,
+        text="Step 0 - Upload image",
+        style="Dark.TLabel",
+        anchor="center"
+    )
+    app.step_label.grid(row=0, column=1)
+
+    next_btn = ttk.Button(
         bottom,
         text="Next ▶",
         command=app.next_step,
         style="Nav.TButton"
-    ).pack(side="right")
+    )
+    next_btn.grid(row=0, column=2, sticky="e")
 
     # -----------------------------
     # EVENTS
