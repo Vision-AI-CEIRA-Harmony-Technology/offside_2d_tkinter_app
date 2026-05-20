@@ -21,12 +21,6 @@ class OffsideLineComputer:
 
         vx, vy = vp
 
-        # --------------------------------------------------
-        # CASE 1:
-        # VP horizontally inside image
-        # use intersection with y = 0
-        # --------------------------------------------------
-
         if 0 <= vx <= frame_w:
 
             denom = (py - vy)
@@ -39,11 +33,6 @@ class OffsideLineComputer:
             x_intersect = vx + t * (px - vx)
 
             return x_intersect
-
-        # --------------------------------------------------
-        # CASE 2:
-        # fallback to old side-border logic
-        # --------------------------------------------------
 
         else:
 
@@ -99,7 +88,7 @@ class OffsideLineComputer:
 
                 kx, ky = kp
 
-                # project kp to ground
+
                 projected_point = (
                     kx,
                     det["bbox"][3]
@@ -126,42 +115,67 @@ class OffsideLineComputer:
             # choose most advanced body part
             # --------------------------------------------------
 
-            vx, _ = vp
-
-            # VP on right side
-            vp_is_right = vx > frame_w / 2
-
             # --------------------------------------------------
             # Choose comparison direction according to:
             # 1. attack direction
             # 2. VP side
             # --------------------------------------------------
 
-            if attack_direction == "right":
+            vx, _ = vp
 
-                if vp_is_right:
+            # --------------------------------------------------
+            # VP INSIDE IMAGE
+            # --------------------------------------------------
+
+            if 0 <= vx <= frame_w:
+
+                if attack_direction == "right":
+
                     best_proj = max(
                         projected_candidates,
                         key=lambda p: p[2]
                     )
+
                 else:
+
                     best_proj = min(
                         projected_candidates,
                         key=lambda p: p[2]
                     )
+
+            # --------------------------------------------------
+            # VP OUTSIDE IMAGE
+            # --------------------------------------------------
 
             else:
 
-                if vp_is_right:
-                    best_proj = min(
-                        projected_candidates,
-                        key=lambda p: p[2]
-                    )
+                vp_is_right = vx > frame_w / 2
+
+                if attack_direction == "right":
+
+                    if vp_is_right:
+                        best_proj = max(
+                            projected_candidates,
+                            key=lambda p: p[2]
+                        )
+                    else:
+                        best_proj = min(
+                            projected_candidates,
+                            key=lambda p: p[2]
+                        )
+
                 else:
-                    best_proj = max(
-                        projected_candidates,
-                        key=lambda p: p[2]
-                    )
+
+                    if vp_is_right:
+                        best_proj = min(
+                            projected_candidates,
+                            key=lambda p: p[2]
+                        )
+                    else:
+                        best_proj = max(
+                            projected_candidates,
+                            key=lambda p: p[2]
+                        )
 
             selected_kp, defender_ground_point, depth_metric = best_proj
 
@@ -226,14 +240,32 @@ class OffsideLineComputer:
 
 
         vx, _ = vp
-        vp_is_right = vx > W / 2
 
-        if attack_info["direction"] == "right":
+        # --------------------------------------------------
+        # VP INSIDE IMAGE
+        # --------------------------------------------------
 
-            reverse_sort = vp_is_right
+        if 0 <= vx <= W:
+
+            reverse_sort = (
+                attack_info["direction"] == "right"
+            )
+
+        # --------------------------------------------------
+        # VP OUTSIDE IMAGE
+        # --------------------------------------------------
 
         else:
-            reverse_sort = not vp_is_right
+
+            vp_is_right = vx > W / 2
+
+            if attack_info["direction"] == "right":
+
+                reverse_sort = vp_is_right
+
+            else:
+
+                reverse_sort = not vp_is_right
 
         defender_candidates.sort(
             key=lambda c: c[2],
@@ -462,31 +494,50 @@ class OffsideJudge:
                     W
                 )
 
-                projected_candidates.append(
-                    (
-                        manual_kp,                 # original keypoint
-                        projected_point,    # projected ground point
-                        proj_y
-                    )
-                )
+                # projected_candidates.append(
+                #     (
+                #         manual_kp,                 # original keypoint
+                #         projected_point,    # projected ground point
+                #         proj_y
+                #     )
+                # )
                 det["offside_keypoint"] = manual_kp
                 det["offside_proj_point"] = projected_point
 
                 attack_direction = attack_info["direction"]
 
-                if attack_direction == "right":
+                # --------------------------------------------------
+                # VP INSIDE IMAGE
+                # --------------------------------------------------
 
-                    if vp_is_right:
+                if 0 <= vx <= W:
+
+                    if attack_direction == "right":
                         is_offside = depth_metric > offside_metric
                     else:
                         is_offside = depth_metric < offside_metric
+
+                # --------------------------------------------------
+                # VP OUTSIDE IMAGE
+                # --------------------------------------------------
 
                 else:
 
-                    if vp_is_right:
-                        is_offside = depth_metric < offside_metric
+                    vp_is_right = vx > W / 2
+
+                    if attack_direction == "right":
+
+                        if vp_is_right:
+                            is_offside = depth_metric > offside_metric
+                        else:
+                            is_offside = depth_metric < offside_metric
+
                     else:
-                        is_offside = depth_metric > offside_metric
+
+                        if vp_is_right:
+                            is_offside = depth_metric < offside_metric
+                        else:
+                            is_offside = depth_metric > offside_metric
                 judgements[i] = "OFFSIDE" if is_offside else "ONSIDE"
 
             else:
@@ -543,19 +594,38 @@ class OffsideJudge:
 
                     attack_direction = attack_info["direction"]
 
-                    if attack_direction == "right":
+                    # --------------------------------------------------
+                    # VP INSIDE IMAGE
+                    # --------------------------------------------------
 
-                        if vp_is_right:
+                    if 0 <= vx <= W:
+
+                        if attack_direction == "right":
                             is_offside = adv_proj > offside_metric
                         else:
                             is_offside = adv_proj < offside_metric
+
+                    # --------------------------------------------------
+                    # VP OUTSIDE IMAGE
+                    # --------------------------------------------------
 
                     else:
 
-                        if vp_is_right:
-                            is_offside = adv_proj < offside_metric
+                        vp_is_right = vx > W / 2
+
+                        if attack_direction == "right":
+
+                            if vp_is_right:
+                                is_offside = adv_proj > offside_metric
+                            else:
+                                is_offside = adv_proj < offside_metric
+
                         else:
-                            is_offside = adv_proj > offside_metric
+
+                            if vp_is_right:
+                                is_offside = adv_proj < offside_metric
+                            else:
+                                is_offside = adv_proj > offside_metric
                     judgements[i] = "OFFSIDE" if is_offside else "ONSIDE"
 
         # Force manual attacker as OFFSIDE if present
