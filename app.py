@@ -124,6 +124,26 @@ class OffsideApp:
 
         self.selected_bboxes = set()
 
+    def delete_selected_roi(self):
+
+        if self.selected_roi is None:
+            return
+
+        self.team_rois[self.selected_roi] = None
+        self.team_centers[self.selected_roi] = None
+
+        # allow re-selection
+        self.current_team_selection = min(
+            self.current_team_selection,
+            self.selected_roi
+        )
+
+        self.selected_roi = None
+        self.roi_drag_mode = None
+        self.roi_resize_corner = None
+
+        self.show_step()
+
     def get_pipeline(self):
         if self.pipeline is None:
             self.pipeline = OffsideDetectionPipeline(

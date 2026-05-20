@@ -240,6 +240,17 @@ def build_app_ui(root, app):
     canvas.bind("<ButtonRelease-1>", lambda e: app.on_mouse_up(e))
     canvas.bind("<Button-3>", lambda e: app.on_right_click(e))
 
-    root.bind("<Delete>", lambda e: app.delete_selected_box())
+    def handle_delete(event):
+
+        if app.current_step == 1:
+            app.delete_selected_box()
+
+        elif app.current_step == 2:
+            app.delete_selected_roi()
+
+        elif app.current_step == 6:
+            app.delete_selected_keypoint()
+
+    root.bind("<Delete>", handle_delete)
 
     return canvas

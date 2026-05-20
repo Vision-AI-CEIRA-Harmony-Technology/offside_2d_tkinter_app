@@ -250,6 +250,9 @@ def on_mouse_down(app, e):
                 return
 
         # CREATE NEW ROI
+        if sum(roi is not None for roi in app.team_rois.values()) >= 2:
+            return
+
         app.selected_roi = None
 
         app.roi_drawing = True
