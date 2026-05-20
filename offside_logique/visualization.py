@@ -9,6 +9,7 @@ from typing import List, Tuple, Optional
 from .config import (
     TEAM_COLORS, OFFSIDE_COLOR, ONSIDE_COLOR, VP_COLOR, KEYPOINT_COLOR, LAST_DEF_KEYPOINT_COLOR
 )
+from .offside_detector import OffsideLineComputer
 from .utils import ColorUtils, GeometryUtils
 
 
@@ -387,16 +388,49 @@ class OverlayRenderer:
         c0 = ColorUtils.bgr_to_display(team_colors[0])
         c1 = ColorUtils.bgr_to_display(team_colors[1])
         team_display_colors = [c0, c1]
+
+        closest_onside_attacker = None
+        if vanishing_point is not None and offside_line is not None:
+            attacking_team = attack_info.get("attacking_team") if attack_info else None
+            has_offside = any(j == "OFFSIDE" for j in judgements)
+            if not has_offside and attacking_team is not None:
+                offside_mid_x = (offside_line[0][0] + offside_line[1][0]) / 2
+                offside_mid_y = (offside_line[0][1] + offside_line[1][1]) / 2
+                offside_metric = OffsideLineComputer.compute_depth_metric(
+                    offside_mid_x,
+                    offside_mid_y,
+                    vanishing_point,
+                    W
+                )
+                best_delta = float("inf")
+                for idx, (det, lbl, judgement) in enumerate(zip(detections, team_labels, judgements)):
+                    if lbl != attacking_team or judgement != "ONSIDE":
+                        continue
+                    proj = det.get("offside_proj_point")
+                    if proj is None:
+                        continue
+                    metric = OffsideLineComputer.compute_depth_metric(
+                        proj[0], proj[1], vanishing_point, W
+                    )
+                    delta = abs(metric - offside_metric)
+                    if delta < best_delta:
+                        best_delta = delta
+                        closest_onside_attacker = idx
+
         if vanishing_point:
             vx, vy = int(vanishing_point[0]), int(vanishing_point[1])
             if 0 <= vx < W and 0 <= vy < H:
                 cv2.circle(out, (vx, vy), 10, VP_COLOR, -1)
                 cv2.circle(out, (vx, vy), 14, (0, 0, 0), 2)
-        for det, lbl, judgement in zip(detections, team_labels, judgements):
+        for idx, (det, lbl, judgement) in enumerate(zip(detections, team_labels, judgements)):
             x1, y1, x2, y2 = det["bbox"]
-            color = team_display_colors[lbl] if lbl >= 0 else (180, 180, 180)
             if judgement == "OFFSIDE":
-                cv2.rectangle(out, (x1, y1), (x2, y2), OFFSIDE_COLOR, 2)
+                color = OFFSIDE_COLOR
+            elif idx == closest_onside_attacker:
+                color = ONSIDE_COLOR
+            else:
+                color = team_display_colors[lbl] if lbl >= 0 else (180, 180, 180)
+            cv2.rectangle(out, (x1, y1), (x2, y2), color, 2)
             for kp_name, (kx, ky) in det["keypoints"].items():
                 cv2.circle(out, (int(kx), int(ky)), 1, KEYPOINT_COLOR, -1)
             if judgement == "OFFSIDE" and det.get("offside_keypoint") is not None:
@@ -412,6 +446,8 @@ class VisualizationRenderer:
         """Initialize visualization renderer."""
         self.keypoint_viz = KeypointVisualizer()
         self.overlay_renderer = OverlayRenderer()
+        self.dragging_offside_kp = None
+        self.dragging_projection_kp = None
     
     def render_main_output(
         self,
