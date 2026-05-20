@@ -446,6 +446,10 @@ def on_mouse_drag(app, e):
 
             app.recompute_offside()
 
+        elif kp_type == "attacker_projected":
+            target_det = app.state["detections"][idx]
+            target_det["offside_proj_point"] = (x, y)
+
         elif kp_type == "defender":
             app.manual_last_defender_kp = (x, y)
             app.recompute_offside()
@@ -610,6 +614,17 @@ def on_mouse_drag(app, e):
 
 def detect_keypoint_hit(app, x, y, radius=20):
     """Detect if mouse clicked on an editable keypoint (attacker or defender)."""
+
+    # ATTACKER PROJECTED KEYPOINTS
+    for i, det in enumerate(app.state["detections"]):
+        proj = det.get("offside_proj_point")
+        if proj is None:
+            continue
+
+        px, py = proj
+        dist = ((px - x) ** 2 + (py - y) ** 2) ** 0.5
+        if dist <= radius:
+            return ("attacker_projected", i)
 
     # ATTACKER OFFSIDE KEYPOINTS
     for i, det in enumerate(app.state["detections"]):

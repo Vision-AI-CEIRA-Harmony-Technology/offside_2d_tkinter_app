@@ -633,6 +633,28 @@ class OffsideJudge:
             for j in range(len(judgements)):
                 judgements[j] = "ONSIDE"
             judgements[manual_attacker_idx] = "OFFSIDE"
+            return judgements
+
+        # If no attacker is offside, mark the closest onside attacker to the offside line
+        if not any(j == "OFFSIDE" for j in judgements):
+            attacking_team = attack_info["attacking_team"]
+            best_delta = float("inf")
+            best_idx = None
+            for i, (det, lbl, judgement) in enumerate(zip(detections, team_labels, judgements)):
+                if lbl != attacking_team or judgement != "ONSIDE":
+                    continue
+                proj_point = det.get("offside_proj_point")
+                if proj_point is None:
+                    continue
+                metric = OffsideLineComputer.compute_depth_metric(
+                    proj_point[0], proj_point[1], vp, W
+                )
+                delta = abs(metric - offside_metric)
+                if delta < best_delta:
+                    best_delta = delta
+                    best_idx = i
+            if best_idx is not None:
+                judgements[best_idx] = "CLOSEST"
 
         return judgements
 
