@@ -464,7 +464,8 @@ class OffsideJudge:
         for i, det in enumerate(detections):
             if det.get("manual_offside_kp") is not None:
                 manual_attacker_idx = i
-                break
+                #* support multiple offsiders
+                # break
 
         for i, (det, lbl) in enumerate(zip(detections, team_labels)):
             if lbl != attacking_team:
@@ -629,11 +630,12 @@ class OffsideJudge:
                     judgements[i] = "OFFSIDE" if is_offside else "ONSIDE"
 
         # Force manual attacker as OFFSIDE if present
-        if manual_attacker_idx is not None:
-            for j in range(len(judgements)):
-                judgements[j] = "ONSIDE"
-            judgements[manual_attacker_idx] = "OFFSIDE"
-            return judgements
+        #! causing the disappearing offsiders + onside becoming offside
+        # if manual_attacker_idx is not None:
+        #     for j in range(len(judgements)):
+        #         judgements[j] = "ONSIDE"
+        #     judgements[manual_attacker_idx] = "OFFSIDE"
+        #     return judgements
 
         # If no attacker is offside, mark the closest onside attacker to the offside line
         if not any(j == "OFFSIDE" for j in judgements):

@@ -220,6 +220,8 @@ def on_mouse_down(app, e):
                 return
 
         hit = detect_keypoint_hit(app, x, y)
+        #! debug
+        print("hit ", hit)
 
         if hit is not None:
             app.selected_kp = hit
@@ -424,39 +426,49 @@ def on_mouse_drag(app, e):
     if app.current_step == 6 and app.dragging_kp:
 
         kp_type, idx = app.selected_kp
+        # debug
+        print("selected kpt info", app.selected_kp)
 
         if kp_type == "attacker":
-            # Find which player the mouse is currently over
-            target_idx = idx
-            for i, det in enumerate(app.state["detections"]):
-                x1, y1, x2, y2 = det["bbox"]
-                if x1 <= x <= x2 and y1 <= y <= y2:
-                    target_idx = i
-                    break
-
-            # Clear manual keypoint from ALL detections
-            for det in app.state["detections"]:
-                det.pop("manual_offside_kp", None)
-                det.pop("offside_keypoint", None)
-
-            # Assign new keypoint to target player
-            target_det = app.state["detections"][target_idx]
+            #! dikra: solve disappearing potential offsideers
+            target_det = app.state["detections"][idx]
             target_det["manual_offside_kp"] = (x, y)
             target_det["offside_keypoint"] = (x, y)
 
-            # Update selection reference
-            app.selected_kp = ("attacker", target_idx)
-
-            # Force this player to be the offside candidate
-            result = app.state.get("offside")
-            if result is not None:
-                judgements = result[-1]
-                for j in range(len(judgements)):
-                    judgements[j] = "ONSIDE"
-                if target_idx < len(judgements):
-                    judgements[target_idx] = "OFFSIDE"
-
             app.recompute_offside()
+
+            # Find which player the mouse is currently over
+            # target_idx = idx
+            # for i, det in enumerate(app.state["detections"]):
+            #     x1, y1, x2, y2 = det["bbox"]
+            #     if x1 <= x <= x2 and y1 <= y <= y2:
+            #         target_idx = i
+            #         break
+
+            # # Clear manual keypoint from ALL detections
+            # #? this is what clears other offside kpts?
+            # for det in app.state["detections"]:
+            #     det.pop("manual_offside_kp", None)
+            #     det.pop("offside_keypoint", None)
+
+            # Assign new keypoint to target player
+            # target_det = app.state["detections"][target_idx]
+            # target_det["manual_offside_kp"] = (x, y)
+            # target_det["offside_keypoint"] = (x, y)
+
+            # # Update selection reference
+            # app.selected_kp = ("attacker", target_idx)
+
+            # # Force this player to be the offside candidate
+            # result = app.state.get("offside")
+            # if result is not None:
+            #     judgements = result[-1]
+            #     for j in range(len(judgements)):
+            #         judgements[j] = "ONSIDE"
+            #     if target_idx < len(judgements):
+                    # judgements[target_idx] = "OFFSIDE"
+
+            # app.recompute_offside()
 
         elif kp_type == "attacker_projected":
             target_det = app.state["detections"][idx]
@@ -643,7 +655,7 @@ def on_mouse_drag(app, e):
     app.show_step()
 
 
-def detect_keypoint_hit(app, x, y, radius=20):
+def detect_keypoint_hit(app, x, y, radius=10):
     """Detect if mouse clicked on an editable keypoint (attacker or defender)."""
 
     # ATTACKER PROJECTED KEYPOINTS
@@ -770,7 +782,7 @@ def on_mouse_up(app, e):
         return
 
     if app.current_step == 3 or app.current_step == 4:
-
+        #* why is these lines here?
         app.dragging_kp = False
         app.selected_kp = None
         return

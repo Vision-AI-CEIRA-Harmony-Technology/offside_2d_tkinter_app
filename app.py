@@ -234,7 +234,7 @@ class OffsideApp:
         self.roi_drag_mode = None
         self.roi_resize_corner = None
 
-        # Step 3 keypoint editing
+        # Step 6 keypoint editing
         self.selected_kp = None
         self.dragging_kp = False
         self.manual_last_defender_kp = None
