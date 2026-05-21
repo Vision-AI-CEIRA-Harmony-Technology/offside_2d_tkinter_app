@@ -472,7 +472,9 @@ def on_mouse_drag(app, e):
 
         elif kp_type == "attacker_projected":
             target_det = app.state["detections"][idx]
-            target_det["offside_proj_point"] = (x, y)
+            orig_projection = target_det.get("offside_proj_point")
+            fixed_x = orig_projection[0] if orig_projection is not None else x
+            target_det["offside_proj_point"] = (fixed_x, y)
 
             result = app.state.get("offside")
             if result is not None:
@@ -498,6 +500,7 @@ def on_mouse_drag(app, e):
             app.recompute_offside()
 
         elif kp_type == "projected":
+            
             # Move only the projected ground point and update offside line/ground line
             result = app.state.get("offside")
             if result is not None:
@@ -505,7 +508,8 @@ def on_mouse_drag(app, e):
                 vp = app.state.get("vp")
                 if vp is not None:
                     H, W = app.original_img.shape[:2]
-                    new_projected = (x, y)
+                    fixed_x = projected_point[0] if projected_point is not None else x
+                    new_projected = (fixed_x, y)
                     new_offside_line = GeometryUtils.extend_line_to_frame(vp, new_projected, W, H)
                     new_ground_line = new_offside_line
                     app.state["offside"] = (
