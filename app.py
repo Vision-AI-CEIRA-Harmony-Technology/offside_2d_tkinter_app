@@ -511,18 +511,21 @@ class OffsideApp:
         # step 5 >> step 6
         elif self.current_step == 5:
 
-            # if not self._is_attack_direction_valid():
-            #     return
-            # Update attack direction in state
             raw_direction = self.attack_direction_var.get().strip().lower()
+
             if raw_direction in ("left", "right"):
                 self.state["attack_info"]["direction"] = raw_direction
 
-            # Recompute offside with updated direction
             self.recompute_offside()
 
             self.current_step = 6
 
+        # step 6 >> step 7 (preview saved image)
+        elif self.current_step == 6:
+
+            self.current_step = 7
+
+        # final save
         else:
 
             self.save_final_image()
@@ -592,7 +595,8 @@ class OffsideApp:
             3: "Lines ▶",
             4: "Direction ▶",
             5: "Projection ▶",
-            6: "Save ▶"
+            6: "Preview ▶",
+            7: "Save ▶"
         }
 
         prev_labels = {
@@ -602,7 +606,8 @@ class OffsideApp:
             3: "◀ Teams",
             4: "◀ Lines",
             5: "◀ Lines",
-            6: "◀ Direction"
+            6: "◀ Direction",
+            7: "◀ Projection"
         }
         # ------------------------------------------------
         # SHOW LOGO SCREEN BEFORE IMAGE UPLOAD
@@ -987,6 +992,30 @@ class OffsideApp:
 
                     
             self.final_render = img_save.copy()
+        elif self.current_step == 7:
+
+            off = self.state["offside"]
+
+            if off:
+
+                pipeline = self.get_pipeline()
+
+                img, img_save = pipeline.render_keypoints_debug(
+                    img,
+                    self.state["detections"],
+                    all_keypoints=False,
+                    offside_line=off[0],
+                    vanishing_point=self.state["vp"],
+                    vanishing_point_horiz=self.state["vph"],
+                    last_kp=off[3],
+                    projected_point=off[4],
+                    projection_points=off[5],
+                    judgements=off[7],
+                    only_offside_attackers=True,
+                    pitch_mask=self.state["pitch_mask"],
+                )
+                img = img_save.copy()
+                self.final_render = img_save.copy()
 
         if self.current_step == 2:
 
