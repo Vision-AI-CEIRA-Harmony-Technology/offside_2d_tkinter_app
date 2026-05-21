@@ -132,6 +132,91 @@ class OffsideApp:
         self.final_render = None
 
         self.selected_bboxes = set()
+        self.placing_offside_kp = False
+        self.selected_kp = None
+        self.dragging_kp = False
+        self.manual_last_defender_kp = None
+        # -----------------------------
+        # VIDEO STATE
+        # -----------------------------
+        self.video_path = None
+        self.video_capture = None
+        self.video_total_frames = 0
+        self.current_video_frame = 0
+        self.current_frame_img = None
+        self.video_playing = False
+        self.video_fps = 30
+        self.video_mode = False
+
+    def load_video(self):
+        path = filedialog.askopenfilename(
+            filetypes=[
+                ("Video Files", "*.mp4 *.avi *.mov *.mkv")
+            ]
+        )
+        if not path:
+            return
+        self.video_path = path
+        self.video_capture = cv2.VideoCapture(path)
+        if not self.video_capture.isOpened():
+            return
+        self.video_total_frames = int(
+            self.video_capture.get(cv2.CAP_PROP_FRAME_COUNT)
+        )
+        self.video_fps = self.video_capture.get(cv2.CAP_PROP_FPS)
+        self.current_video_frame = 0
+        self.video_mode = True
+        self.read_current_frame()
+        self.show_step()
+
+    def read_current_frame(self):
+        if self.video_capture is None:
+            return
+        self.video_capture.set(
+            cv2.CAP_PROP_POS_FRAMES,
+            self.current_video_frame
+        )
+        ret, frame = self.video_capture.read()
+        if ret:
+            self.current_frame_img = frame
+
+    def next_frame(self):
+        if self.current_video_frame < self.video_total_frames - 1:
+            self.current_video_frame += 1
+            self.read_current_frame()
+            self.show_step()
+
+
+    def prev_frame(self):
+        if self.current_video_frame > 0:
+            self.current_video_frame -= 1
+            self.read_current_frame()
+            self.show_step()
+
+    def toggle_play_video(self):
+        self.video_playing = not self.video_playing
+        if self.video_playing:
+            self.play_video_loop()
+
+    def play_video_loop(self):
+        if not self.video_playing:
+            return
+        if self.current_video_frame >= self.video_total_frames - 1:
+            self.video_playing = False
+            return
+        self.current_video_frame += 1
+        self.read_current_frame()
+        self.show_step()
+        delay = int(1000 / max(1, self.video_fps))
+        self.root.after(delay, self.play_video_loop)
+    
+    def choose_current_frame(self):
+        if self.current_frame_img is None:
+            return
+        self.original_img = self.current_frame_img.copy()
+        self.video_mode = False
+        self.current_step = 0
+        self.show_step()
 
     def delete_selected_roi(self):
 
@@ -534,7 +619,19 @@ class OffsideApp:
         self.show_step()
 
     def prev_step(self):
+        # step 1 -> back to selected frame
+        if self.current_step == 1:
+            self.current_step = 0
+            # IMPORTANT:
+            # keep selected frame as image
+            # but disable video mode
+            self.video_mode = False
+            self.video_playing = False
+            self.show_step()
+            return
+
         self.current_step = max(self.current_step - 1, 0)
+
         self.show_step()
 
     def display(self, img):
@@ -609,10 +706,58 @@ class OffsideApp:
             6: "◀ Direction",
             7: "◀ Projection"
         }
+
+        if self.video_mode and self.current_frame_img is not None:
+            # show video controls
+            if hasattr(self, "play_btn"):
+                self.play_btn.pack(side="left", padx=5)
+            if hasattr(self, "prev_frame_btn"):
+                self.prev_frame_btn.pack(side="left", padx=5)
+            if hasattr(self, "next_frame_btn"):
+                self.next_frame_btn.pack(side="left", padx=5)
+            if hasattr(self, "choose_frame_btn"):
+                self.choose_frame_btn.pack(side="left", padx=5)
+            # display current frame
+            self.display(self.current_frame_img)
+            return
+        # hide normal workflow buttons
+        if hasattr(self, "upload_btn"):
+            self.upload_btn.pack_forget()
+
+        if hasattr(self, "prev_btn"):
+            self.prev_btn.grid_remove()
+
+        if hasattr(self, "next_btn"):
+            self.next_btn.grid_remove()
         # ------------------------------------------------
         # SHOW LOGO SCREEN BEFORE IMAGE UPLOAD
         # ------------------------------------------------
+        if hasattr(self, "play_btn"):
+            self.play_btn.pack_forget()
+
+        if hasattr(self, "prev_frame_btn"):
+            self.prev_frame_btn.pack_forget()
+
+        if hasattr(self, "next_frame_btn"):
+            self.next_frame_btn.pack_forget()
+
+        if hasattr(self, "choose_frame_btn"):
+            self.choose_frame_btn.pack_forget()
+
         if self.original_img is None:
+
+            # STEP 0 → only show upload video
+            if hasattr(self, "upload_btn"):
+                self.upload_btn.pack_forget()
+
+            if hasattr(self, "upload_video_btn"):
+                self.upload_video_btn.pack(side="left", padx=5, pady=10)
+
+            if hasattr(self, "prev_btn"):
+                self.prev_btn.grid_remove()
+
+            if hasattr(self, "next_btn"):
+                self.next_btn.grid_remove()
 
             canvas_w = self.canvas.winfo_width()
             canvas_h = self.canvas.winfo_height()
@@ -682,6 +827,15 @@ class OffsideApp:
 
             return
 
+        # normal workflow starts after frame selection
+        if hasattr(self, "upload_video_btn"):
+            self.upload_video_btn.pack_forget()
+        if hasattr(self, "upload_btn"):
+            self.upload_btn.pack_forget()
+        if hasattr(self, "prev_btn"):
+            self.prev_btn.grid()
+        if hasattr(self, "next_btn"):
+            self.next_btn.grid()
         img = self.original_img.copy()
         h, w = img.shape[:2]
 
