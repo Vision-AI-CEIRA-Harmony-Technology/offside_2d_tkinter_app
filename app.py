@@ -619,19 +619,13 @@ class OffsideApp:
         self.show_step()
 
     def prev_step(self):
-        # step 1 -> back to selected frame
-        if self.current_step == 1:
-            self.current_step = 0
-            # IMPORTANT:
-            # keep selected frame as image
-            # but disable video mode
-            self.video_mode = False
+        # step 0 -> back to video selector
+        if self.current_step == 0 and self.video_capture is not None:
+            self.video_mode = True
             self.video_playing = False
             self.show_step()
             return
-
         self.current_step = max(self.current_step - 1, 0)
-
         self.show_step()
 
     def display(self, img):
