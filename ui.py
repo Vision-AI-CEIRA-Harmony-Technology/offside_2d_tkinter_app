@@ -215,6 +215,9 @@ def build_app_ui(root, app):
     )
     prev_btn.grid(row=0, column=0, sticky="w")
 
+    app.prev_btn = prev_btn
+    
+
     app.step_label = ttk.Label(
         bottom,
         text="Step 0 - Upload image",
@@ -231,6 +234,7 @@ def build_app_ui(root, app):
     )
     next_btn.grid(row=0, column=2, sticky="e")
 
+    app.next_btn = next_btn
     # -----------------------------
     # EVENTS
     # -----------------------------

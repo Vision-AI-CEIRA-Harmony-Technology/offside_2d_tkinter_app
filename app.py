@@ -585,6 +585,25 @@ class OffsideApp:
         self.canvas.create_image(self.offset_x, self.offset_y, anchor="nw", image=self.tk_img)
 
     def show_step(self):
+        next_labels = {
+            0: "Players ▶",
+            1: "Teams ▶",
+            2: "Lines ▶",
+            3: "Lines ▶",
+            4: "Direction ▶",
+            5: "Projection ▶",
+            6: "Save ▶"
+        }
+
+        prev_labels = {
+            0: "◀ Back",
+            1: "◀ Upload",
+            2: "◀ Players",
+            3: "◀ Teams",
+            4: "◀ Lines",
+            5: "◀ Lines",
+            6: "◀ Direction"
+        }
         # ------------------------------------------------
         # SHOW LOGO SCREEN BEFORE IMAGE UPLOAD
         # ------------------------------------------------
@@ -995,6 +1014,15 @@ class OffsideApp:
         if hasattr(self, "step_label"):
             self.step_label.config(
                 text=step_text.get(self.current_step, "")
+            )
+        if hasattr(self, "next_btn"):
+            self.next_btn.config(
+                text=next_labels.get(self.current_step, "Next ▶")
+            )
+
+        if hasattr(self, "prev_btn"):
+            self.prev_btn.config(
+                text=prev_labels.get(self.current_step, "◀ Previous")
             )
         # hide first
         if hasattr(self, "undo_btn"):
