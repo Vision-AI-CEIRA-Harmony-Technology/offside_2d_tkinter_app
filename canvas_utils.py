@@ -778,7 +778,7 @@ def on_mouse_up(app, e):
     # FINISH KEYPOINT DRAG (STEP 6)
     if app.current_step == 6:
         app.dragging_kp = False
-        app.selected_kp = None
+        # app.selected_kp = None
         app.show_step()
         return
 
