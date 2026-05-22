@@ -430,6 +430,19 @@ def on_mouse_drag(app, e):
         print("selected kpt info", app.selected_kp)
 
         if kp_type == "attacker":
+            attacking_team = app.state["attack_info"]["attacking_team"]
+            in_attacker_bbox = False
+            for i, det in enumerate(app.state["detections"]):
+                if app.state["team_labels"][i] != attacking_team:
+                    continue  # skip defenders
+                x1, y1, x2, y2 = det["bbox"]
+                if x1 <= x <= x2 and y1 <= y <= y2:
+                    in_attacker_bbox = True
+                    break
+            
+            if not in_attacker_bbox:
+                return
+            
             #! dikra: solve disappearing potential offsideers
             target_det = app.state["detections"][idx]
             target_det["manual_offside_kp"] = (x, y)
@@ -496,6 +509,22 @@ def on_mouse_drag(app, e):
                         )
 
         elif kp_type == "defender":
+            # debug
+            print("KP TYPE IS DEFENDER", kp_type)
+            attacking_team = app.state["attack_info"]["attacking_team"]
+            # debug
+            print("Attacking team is ", attacking_team)
+            in_defender_bbox = False
+            for i, det in enumerate(app.state["detections"]):
+                if app.state["team_labels"][i] == attacking_team:
+                    continue  # skip attackers
+                x1, y1, x2, y2 = det["bbox"]
+                if x1 <= x <= x2 and y1 <= y <= y2:
+                    in_defender_bbox = True
+                    break
+            
+            if not in_defender_bbox:
+                return  # block drag outside defender bboxes
             app.manual_last_defender_kp = (x, y)
             app.recompute_offside()
 
@@ -661,6 +690,17 @@ def on_mouse_drag(app, e):
 
 def detect_keypoint_hit(app, x, y, radius=10):
     """Detect if mouse clicked on an editable keypoint (attacker or defender)."""
+    # ATTACKER OFFSIDE KEYPOINTS
+    for i, det in enumerate(app.state["detections"]):
+        kp = det.get("offside_keypoint")
+        if kp is None:
+            continue
+
+        kx, ky = kp
+        dist = ((kx - x) ** 2 + (ky - y) ** 2) ** 0.5
+
+        if dist <= radius:
+            return ("attacker", i)
 
     # ATTACKER PROJECTED KEYPOINTS
     for i, det in enumerate(app.state["detections"]):
@@ -673,17 +713,6 @@ def detect_keypoint_hit(app, x, y, radius=10):
         if dist <= radius:
             return ("attacker_projected", i)
 
-    # ATTACKER OFFSIDE KEYPOINTS
-    for i, det in enumerate(app.state["detections"]):
-        kp = det.get("offside_keypoint")
-        if kp is None:
-            continue
-
-        kx, ky = kp
-        dist = ((kx - x) ** 2 + (ky - y) ** 2) ** 0.5
-
-        if dist <= radius:
-            return ("attacker", i)
 
     # DEFENDER LAST PLAYER KEYPOINT
     result = app.state.get("offside")
