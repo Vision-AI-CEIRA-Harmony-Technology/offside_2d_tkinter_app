@@ -46,7 +46,7 @@ class KeypointVisualizer:
             3.0
         )
 
-        line_thickness = max(1, int(1.5 * ui_scale))
+        line_thickness = max(1, int(0.5 * ui_scale))
         point_radius = max(1, int(2 * ui_scale))
         big_point_radius = min(5, int(3 * ui_scale))
 
@@ -81,7 +81,7 @@ class KeypointVisualizer:
             cv2.circle(
                 out,
                 (int(okx), int(oky)),
-                big_point_radius,
+                point_radius,
                 color,
                 -1
             )
@@ -89,7 +89,7 @@ class KeypointVisualizer:
             cv2.circle(
                 out_save,
                 (int(okx), int(oky)),
-                big_point_radius,
+                point_radius,
                 color,
                 -1
             )
@@ -226,7 +226,7 @@ class KeypointVisualizer:
             cv2.circle(
                 out,
                 (lx, ly),
-                big_point_radius,
+                point_radius,
                 LAST_DEF_KEYPOINT_COLOR,
                 -1
             )
@@ -234,7 +234,7 @@ class KeypointVisualizer:
             cv2.circle(
                 out_save,
                 (lx, ly),
-                big_point_radius,
+                point_radius,
                 LAST_DEF_KEYPOINT_COLOR,
                 -1
             )
