@@ -117,6 +117,8 @@ def get_roi(app, idx):
 
 def set_roi(app, idx, roi):
     app.team_rois[idx] = roi
+    if app.video_mode and app.original_img is None:
+        app.video_team_rois[idx] = roi
 
 
 def on_mouse_down(app, e):
@@ -243,10 +245,11 @@ def on_mouse_down(app, e):
                 app.show_step()
                 return # Exit after finding the first hit
 
-    # ONLY STEP 1 & 2 BELOW
-    if app.current_step != 1 and app.current_step != 2:
+    # ONLY STEP 1 & 2 BELOW, or video preview ROI selection before frame choice
+    video_roi_mode = app.video_mode and app.current_step == 0 and app.original_img is None
+    if app.current_step != 1 and app.current_step != 2 and not video_roi_mode:
         return
-    if app.current_step == 2:
+    if app.current_step == 2 or video_roi_mode:
 
         x, y = canvas_to_image(app, e.x, e.y)
 
@@ -511,10 +514,18 @@ def on_mouse_drag(app, e):
         return
     
     # ONLY STEP 1 & 2 BELOW
-    if app.current_step != 1 and app.current_step != 2:
+    video_roi_mode = (
+        app.video_mode and
+        app.current_step == 0 and
+        app.original_img is None
+    )
+
+    # ONLY STEP 1, STEP 2, OR VIDEO ROI MODE
+    if app.current_step != 1 and app.current_step != 2 and not video_roi_mode:
         return
 
-    if app.current_step == 2:
+    video_roi_mode = app.video_mode and app.current_step == 0 and app.original_img is None
+    if app.current_step == 2 or video_roi_mode:
 
         x, y = canvas_to_image(app, e.x, e.y)
 
@@ -590,6 +601,10 @@ def on_mouse_drag(app, e):
         new_box = (box[0] + dx, box[1] + dy, box[2] + dx, box[3] + dy)
         set_box(app, app.selected_box, new_box)
         app.start_x, app.start_y = x, y
+
+        print("mouse image:", x, y)
+        print("roi:", get_roi(app, app.selected_roi))
+        print("scale:", app.display_scale)
     elif app.drag_mode == "resize" and app.selected_box is not None:
         x1, y1, x2, y2 = get_box(app, app.selected_box)
         # top-left
@@ -783,7 +798,8 @@ def on_mouse_up(app, e):
         return
 
     # ROI SELECTION STEP
-    if app.current_step == 2 and app.roi_drawing:
+    video_roi_mode = app.video_mode and app.current_step == 0 and app.original_img is None
+    if (app.current_step == 2 or video_roi_mode) and app.roi_drawing:
 
         x, y = canvas_to_image(app, e.x, e.y)
 
@@ -800,14 +816,21 @@ def on_mouse_up(app, e):
 
         # save roi
         app.team_rois[team_id] = roi
+        app.video_team_rois[team_id] = roi
 
         # extract dominant jersey color
+        frame = app.original_img if app.original_img is not None else app.current_frame_img
         color = TeamClassifier.extract_jersey_color(
-            app.original_img,
+            frame,
             roi
         )
 
         app.team_centers[team_id] = color
+        app.video_team_centers[team_id] = color
+
+        # Lock ROI to current frame if in video preview mode
+        if app.video_mode and app.original_img is None:
+            app.video_rois_locked_at_frame = app.current_video_frame
 
         # first selected team = defending
         if team_id == 0:
@@ -821,8 +844,24 @@ def on_mouse_up(app, e):
         # BOTH TEAMS SELECTED
         if app.current_team_selection > 1:
             app.current_team_selection = 2
+            # Update video_left_team_id and video_right_team_id based on ROI positions
+            if app.video_mode and app.original_img is None:
+                app._determine_left_right_teams()
+                app.video_left_team_id = app.left_team_id
+                app.video_right_team_id = app.right_team_id
 
         # refresh ui
+        app.show_step()
+        return
+
+    # finalize interactive ROI move/resize
+    if (app.current_step == 2 or video_roi_mode) and app.roi_drag_mode is not None:
+        if app.selected_roi is not None:
+            if app.video_mode and app.original_img is None:
+                app.video_team_rois[app.selected_roi] = app.team_rois[app.selected_roi]
+        app.roi_drag_mode = None
+        app.roi_resize_corner = None
+        app.selected_roi = None
         app.show_step()
         return
 
