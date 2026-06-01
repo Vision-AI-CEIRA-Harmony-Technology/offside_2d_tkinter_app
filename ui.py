@@ -145,7 +145,6 @@ def build_app_ui(root, app):
         text="Attack Direction:",
         style="Dark.TLabel"
     )
-    # attack_dir_label.pack(side="left", padx=(15, 5), pady=12)  #! dikra: moved to conditional in show_step
 
     app.attack_direction_entry = ttk.Entry(
         toolbar,
@@ -154,7 +153,6 @@ def build_app_ui(root, app):
         font=("Segoe UI", 10),
         style="Dark.TEntry"
     )
-    # app.attack_direction_entry.pack(side="left", padx=(0, 15), pady=10)  #! dikra: moved to conditional in show_step
 
     app.attack_direction_var.set("")
 

@@ -86,13 +86,14 @@ class KeypointVisualizer:
                 -1
             )
 
-            cv2.circle(
-                out_save,
-                (int(okx), int(oky)),
-                point_radius,
-                color,
-                -1
-            )
+            # no kpts in final save
+            # cv2.circle(
+            #     out_save,
+            #     (int(okx), int(oky)),
+            #     point_radius,
+            #     color,
+            #     -1
+            # )
 
             # label
             cv2.putText(
@@ -139,13 +140,14 @@ class KeypointVisualizer:
                 -1
             )
 
-            cv2.circle(
-                out_save,
-                (px, py),
-                point_radius,
-                color,
-                -1
-            )
+            # no kpts in final save
+            # cv2.circle(
+            #     out_save,
+            #     (px, py),
+            #     point_radius,
+            #     color,
+            #     -1
+            # )
 
             vp_x, vp_y = map(int, vanishing_point)
             vph_x, vph_y = map(int, vanishing_point_horiz)
@@ -231,13 +233,14 @@ class KeypointVisualizer:
                 -1
             )
 
-            cv2.circle(
-                out_save,
-                (lx, ly),
-                point_radius,
-                LAST_DEF_KEYPOINT_COLOR,
-                -1
-            )
+            # no kpts in final save
+            # cv2.circle(
+            #     out_save,
+            #     (lx, ly),
+            #     point_radius,
+            #     LAST_DEF_KEYPOINT_COLOR,
+            #     -1
+            # )
 
             cv2.putText(
                 out,
@@ -280,13 +283,14 @@ class KeypointVisualizer:
                 -1
             )
 
-            cv2.circle(
-                out_save,
-                (px, py),
-                point_radius,
-                LAST_DEF_KEYPOINT_COLOR,
-                -1
-            )
+            # no kpts in final save
+            # cv2.circle(
+            #     out_save,
+            #     (px, py),
+            #     point_radius,
+            #     LAST_DEF_KEYPOINT_COLOR,
+            #     -1
+            # )
 
             vp_x, vp_y = map(int, vanishing_point)
             vph_x, vph_y = map(int, vanishing_point_horiz)
