@@ -220,8 +220,6 @@ def on_mouse_down(app, e):
         #         return
 
         hit = detect_keypoint_hit(app, x, y)
-        #! debug
-        print("hit ", hit)
 
         if hit is not None:
             app.selected_kp = hit
@@ -426,19 +424,14 @@ def on_mouse_drag(app, e):
     if app.current_step == 6 and app.dragging_kp:
 
         kp_type, idx = app.selected_kp
-        # debug
-        print("selected kpt info", app.selected_kp)
 
         if kp_type == "attacker":
             attacking_team = app.state["attack_info"]["attacking_team"]
             in_attacker_bbox = False
             for i, det in enumerate(app.state["detections"]):
                 if app.state["team_labels"][i] != attacking_team:
-                    # debug
-                    print('skipping defender bbox', det["bbox"])
                     continue  # skip defenders
-                # debug
-                print('assigned bbox', det['bbox'])
+
                 x1, y1, x2, y2 = det["bbox"]
                 if x1 <= x <= x2 and y1 <= y <= y2:
                     in_attacker_bbox = True
@@ -513,11 +506,7 @@ def on_mouse_drag(app, e):
                         )
 
         elif kp_type == "defender":
-            # debug
-            print("KP TYPE IS DEFENDER", kp_type)
             attacking_team = app.state["attack_info"]["attacking_team"]
-            # debug
-            print("Attacking team is ", attacking_team)
             in_defender_bbox = False
             for i, det in enumerate(app.state["detections"]):
                 if app.state["team_labels"][i] == attacking_team:
