@@ -466,7 +466,7 @@ class OffsideJudge:
         for i, det in enumerate(detections):
             if det.get("manual_offside_kp") is not None:
                 manual_attacker_idx = i
-                #* support multiple offsiders
+                #* support multiple offsiders: this is useless now?
                 # break
 
         for i, (det, lbl) in enumerate(zip(detections, team_labels)):
