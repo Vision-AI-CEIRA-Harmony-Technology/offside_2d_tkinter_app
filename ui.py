@@ -158,6 +158,14 @@ def build_app_ui(root, app):
         command=app.choose_current_frame,
         style="Action.TButton"
     )
+
+    app.back_to_video_btn = ttk.Button(
+        toolbar,
+        text="Back to Video",
+        command=app.back_to_video,
+        style="Action.TButton"
+    )
+
     app.undo_btn = ttk.Button(
         toolbar,
         text="Undo",
@@ -204,6 +212,21 @@ def build_app_ui(root, app):
     # app.attack_direction_entry.pack(side="left", padx=(0, 15), pady=10)  #! dikra: moved to conditional in show_step
 
     app.attack_direction_var.set("")
+
+    app.mitemp_var = tk.StringVar()
+    app.mitemp_label = ttk.Label(
+        toolbar,
+        text="mt:",
+        style="Dark.TLabel"
+    )
+    app.mitemp_entry = ttk.Entry(
+        toolbar,
+        textvariable=app.mitemp_var,
+        width=4,
+        font=("Segoe UI", 10),
+        style="Dark.TEntry"
+    )
+    app.mitemp_var.set("1")
 ################################
     # -----------------------------
     # CANVAS FRAME

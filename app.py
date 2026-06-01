@@ -65,6 +65,11 @@ class OffsideApp:
         self.display_scale = 1.0
         self.offset_x = 0
         self.offset_y = 0
+        self.line_thickness = 2
+        self.text_scale = 0.55
+        self.text_thickness = 2
+        self.handle_radius = 5
+        self.point_radius = 4
 
         # Bind the canvas event handlers from helper utilities
         self.on_mouse_down = lambda e: on_mouse_down(self, e)
@@ -83,6 +88,10 @@ class OffsideApp:
             0: None,
             1: None,
         }
+        self.video_team_rois = {
+            0: None,
+            1: None,
+        }
 
         self.current_team_selection = 0
         self.roi_drawing = False
@@ -95,9 +104,25 @@ class OffsideApp:
             1: None,
         }
 
+        # Persist video-level team colors across frame selection
+        self.video_team_centers = {
+            0: None,
+            1: None,
+        }
+        self.video_defending_team = 0
+        self.video_left_team_id = None  # Team ID on left side of frame
+        self.video_right_team_id = None  # Team ID on right side of frame
+        self.left_team_id = None
+        self.right_team_id = None
+        self.video_left_team_id = None  # Team ID on left side of frame
+        self.video_right_team_id = None  # Team ID on right side of frame
+        self.left_team_id = None
+        self.right_team_id = None
+
         self.selected_roi = None
         self.roi_drag_mode = None
         self.roi_resize_corner = None
+        self.show_video_rois = True
 
         # First selected team is defending
         self.defending_team = 0
@@ -147,6 +172,8 @@ class OffsideApp:
         self.video_playing = False
         self.video_fps = 30
         self.video_mode = False
+        self.video_rois_locked_at_frame = None
+        self.video_rois_locked_at_frame = None
 
     #khadija code load cursor
     def set_busy(self, message="Processing..."):
@@ -192,6 +219,57 @@ class OffsideApp:
         self.video_fps = self.video_capture.get(cv2.CAP_PROP_FPS)
         self.current_video_frame = 0
         self.video_mode = True
+        self.current_step = 0
+        self.video_team_centers = {0: None, 1: None}
+        self.video_defending_team = 0
+        self.video_team_rois = {0: None, 1: None}
+        self.video_left_team_id = None
+        self.video_right_team_id = None
+        self.state = {
+            "detections": [],
+            "team_labels": [],
+            "team_color_0": None,
+            "team_color_1": None,
+            "vp": None,
+            "offside": None,
+            "pitch_mask": None,
+            "attack_info": None,
+        }
+        self.selected_bboxes = set()
+        self.team_rois = {0: None, 1: None}
+        self.current_team_selection = 0
+        self.roi_drawing = False
+        self.roi_start = None
+        self.temp_roi = None
+        self.selected_box = None
+        self.drag_mode = None
+        self.resize_corner = None
+        self.drawing = False
+        self.temp_box = None
+        self.selected_roi = None
+        self.roi_drag_mode = None
+        self.roi_resize_corner = None
+        self.manual_vp_lines = []
+        self.temp_vp_line = None
+        self.vp_line_start = None
+        self.manual_vph_lines = []
+        self.temp_vph_line = None
+        self.vph_line_start = None
+        self.selected_vp_line = None
+        self.dragging_vp_endpoint = None
+        self.dragging_vp_line = False
+        self.selected_vph_line = None
+        self.dragging_vph_endpoint = None
+        self.dragging_vph_line = False
+        self.zoom_level = 1.0
+        self.zoom_center_x = None
+        self.zoom_center_y = None
+        self.zoom_crop_x1 = 0
+        self.zoom_crop_y1 = 0
+        self.current_frame_img = None
+        self.video_playing = False
+        self.team_centers = self.video_team_centers.copy()
+        self.defending_team = self.video_defending_team
         self.read_current_frame()
         self.show_step()
 
@@ -241,7 +319,56 @@ class OffsideApp:
             return
         self.original_img = self.current_frame_img.copy()
         self.video_mode = False
-        self.current_step = 0
+        self.current_step = 1
+        self.video_rois_locked_at_frame = None
+        self.state = {
+            "detections": [],
+            "team_labels": [],
+            "team_color_0": self.team_centers[0],
+            "team_color_1": self.team_centers[1],
+            "vp": None,
+            "offside": None,
+            "pitch_mask": None,
+            "attack_info": None,
+        }
+        self.selected_bboxes = set()
+        self.team_rois = self.video_team_rois.copy()
+        self.current_team_selection = 2 if self.team_rois[0] is not None and self.team_rois[1] is not None else 0
+        self.roi_drawing = False
+        self.roi_start = None
+        self.temp_roi = None
+        self.selected_box = None
+        self.drag_mode = None
+        self.resize_corner = None
+        self.drawing = False
+        self.temp_box = None
+        self.selected_roi = None
+        self.roi_drag_mode = None
+        self.roi_resize_corner = None
+        self.manual_vp_lines = []
+        self.temp_vp_line = None
+        self.vp_line_start = None
+        self.manual_vph_lines = []
+        self.temp_vph_line = None
+        self.vph_line_start = None
+        self.selected_vp_line = None
+        self.dragging_vp_endpoint = None
+        self.dragging_vp_line = False
+        self.selected_vph_line = None
+        self.dragging_vph_endpoint = None
+        self.dragging_vph_line = False
+        self.zoom_level = 1.0
+        self.zoom_center_x = None
+        self.zoom_center_y = None
+        self.zoom_crop_x1 = 0
+        self.zoom_crop_y1 = 0
+        self.team_centers = self.video_team_centers.copy()
+        self.defending_team = self.video_defending_team
+        self.video_rois_locked_at_frame = None
+        self.left_team_id = self.video_left_team_id
+        self.right_team_id = self.video_right_team_id
+        self._determine_left_right_teams()
+        self.run_detection()
         self.show_step()
 
     def delete_selected_roi(self):
@@ -477,9 +604,8 @@ class OffsideApp:
         if manual_direction is not None:
             attack_info["direction"] = manual_direction
 
-        # first selected team = defending
-        attack_info["defending_team"] = self.defending_team
-        attack_info["attacking_team"] = 1 - self.defending_team
+        # first selected team = defending or swapped by mitemp
+        self._apply_mitemp_to_attack_info(attack_info)
 
         # -----------------------------
         # OFFSIDE
@@ -503,16 +629,19 @@ class OffsideApp:
         self.state["team_color_1"] = c1
         self.state["attack_info"] = attack_info
         self.state["offside"] = result
+        self.video_team_centers[0] = c0
+        self.video_team_centers[1] = c1
 
     def recompute_offside(self):
 
         detections = self.state["detections"]
 
         pipeline = self.get_pipeline()
+        attack_info = self._apply_mitemp_to_attack_info(self.state["attack_info"])
         result = pipeline.offside_detector.compute_offside_status(
             detections,
             self.state["team_labels"],
-            self.state["attack_info"],
+            attack_info,
             self.state["vp"],
             self.state["vph"],
             self.original_img.shape[:2],
@@ -522,22 +651,84 @@ class OffsideApp:
         self.state["offside"] = result
 
     def refresh_team_classification(self):
+        frame = (
+            self.original_img
+            if self.original_img is not None
+            else self.current_frame_img
+        )
 
-        # recompute colors from updated ROIs
         for tid, roi in self.team_rois.items():
-
             if roi is None:
                 continue
 
             color = TeamClassifier.extract_jersey_color(
-                self.original_img,
+                frame,
                 roi
             )
 
             self.team_centers[tid] = color
+            self.video_team_centers[tid] = color
 
-        # rerun offside logic
-        self.run_offside()
+        # Only recompute offside after a frame has been chosen
+        if self.original_img is not None:
+            self.run_offside()
+
+    def _determine_left_right_teams(self):
+        """Determine which team ID is on left/right based on ROI center X positions."""
+        if self.team_rois[0] is None or self.team_rois[1] is None:
+            return
+        
+        x1_0, y1_0, x2_0, y2_0 = self.team_rois[0]
+        x1_1, y1_1, x2_1, y2_1 = self.team_rois[1]
+        
+        center_x_0 = (x1_0 + x2_0) / 2
+        center_x_1 = (x1_1 + x2_1) / 2
+        
+        if center_x_0 < center_x_1:
+            self.left_team_id = 0
+            self.right_team_id = 1
+        else:
+            self.left_team_id = 1
+            self.right_team_id = 0
+
+    def _apply_mitemp_to_attack_info(self, attack_info):
+        """Determine attacking/defending teams based on attack direction and mitemp.
+        
+        Logic:
+        - direction=right, mitemp=1 (keep same) → attacking=left
+        - direction=right, mitemp=2 (swap) → attacking=right
+        - direction=left, mitemp=1 (keep same) → attacking=right
+        - direction=left, mitemp=2 (swap) → attacking=left
+        """
+        if not hasattr(self, "mitemp_var") or not hasattr(self, "attack_direction_var"):
+            return attack_info
+
+        # Ensure left/right teams are determined
+        if self.left_team_id is None or self.right_team_id is None:
+            self._determine_left_right_teams()
+            if self.left_team_id is None or self.right_team_id is None:
+                return attack_info
+        
+        direction = self.attack_direction_var.get().strip().lower()
+        mitemp = self.mitemp_var.get().strip()
+        use_same_roles = mitemp == "1"
+        
+        # Determine attacking team based on direction and mitemp
+        if direction == "right":
+            attacking_team = self.left_team_id if use_same_roles else self.right_team_id
+        elif direction == "left":
+            attacking_team = self.right_team_id if use_same_roles else self.left_team_id
+        else:
+            # Fallback to old logic if direction is invalid
+            use_same_roles = mitemp == "1"
+            attacking_team = self.defending_team if use_same_roles else (1 - self.defending_team)
+        
+        defending_team = 1 - attacking_team
+        
+        attack_info["defending_team"] = defending_team
+        attack_info["attacking_team"] = attacking_team
+
+        return attack_info
 
     #! dikra: manual direction required??
     def _is_attack_direction_valid(self):
@@ -565,7 +756,10 @@ class OffsideApp:
                     if i in self.selected_bboxes
                 ]
 
-            self.current_step = 2
+            if self.team_rois[0] is not None and self.team_rois[1] is not None:
+                self.current_step = 3
+            else:
+                self.current_step = 2
 
         # STEP 2 -> PROCESS -> STEP 3
         elif self.current_step == 2:
@@ -641,6 +835,7 @@ class OffsideApp:
             if raw_direction in ("left", "right"):
                 self.state["attack_info"]["direction"] = raw_direction
 
+            self._apply_mitemp_to_attack_info(self.state["attack_info"])
             self.recompute_offside()
 
             self.current_step = 6
@@ -659,13 +854,26 @@ class OffsideApp:
         self.show_step()
 
     def prev_step(self):
-        # step 0 -> back to video selector
+        # Step 0 -> back to video selector
         if self.current_step == 0 and self.video_capture is not None:
             self.video_mode = True
             self.video_playing = False
+            self.original_img = None
             self.show_step()
             return
+
         self.current_step = max(self.current_step - 1, 0)
+        self.show_step()
+
+
+    def back_to_video(self):
+        if self.video_capture is None:
+            return
+
+        self.video_mode = True
+        self.video_playing = False
+        self.original_img = None
+        self.show_video_rois = False
         self.show_step()
 
     def display(self, img):
@@ -721,7 +929,7 @@ class OffsideApp:
     def show_step(self):
         next_labels = {
             0: "Players ▶",
-            1: "Teams ▶",
+            1: "Lines ▶",
             2: "Lines ▶",
             3: "Lines ▶",
             4: "Direction ▶",
@@ -732,7 +940,7 @@ class OffsideApp:
 
         prev_labels = {
             0: "◀ Back",
-            1: "◀ Upload",
+            1: "◀ Previous",
             2: "◀ Players",
             3: "◀ Teams",
             4: "◀ Lines",
@@ -741,8 +949,17 @@ class OffsideApp:
             7: "◀ Projection"
         }
 
-        if self.video_mode and self.current_frame_img is not None:
-            # show video controls
+        if self.video_mode and self.current_frame_img is not None and self.original_img is None:
+            if hasattr(self, "upload_btn"):
+                self.upload_btn.pack_forget()
+            if hasattr(self, "upload_video_btn"):
+                self.upload_video_btn.pack_forget()
+            if hasattr(self, "prev_btn"):
+                self.prev_btn.grid_remove()
+            if hasattr(self, "next_btn"):
+                self.next_btn.grid_remove()
+            if hasattr(self, "back_to_video_btn"):
+                self.back_to_video_btn.pack_forget()
             if hasattr(self, "play_btn"):
                 self.play_btn.pack(side="left", padx=5)
             if hasattr(self, "prev_frame_btn"):
@@ -751,9 +968,65 @@ class OffsideApp:
                 self.next_frame_btn.pack(side="left", padx=5)
             if hasattr(self, "choose_frame_btn"):
                 self.choose_frame_btn.pack(side="left", padx=5)
-            # display current frame
-            self.display(self.current_frame_img)
+            if hasattr(self, "attack_direction_entry"):
+                self.attack_direction_entry.pack_forget()
+            if hasattr(self, "attack_dir_label"):
+                self.attack_dir_label.pack_forget()
+            if hasattr(self, "mitemp_entry"):
+                self.mitemp_entry.pack_forget()
+            if hasattr(self, "mitemp_label"):
+                self.mitemp_label.pack_forget()
+            if hasattr(self, "add_keypoint_btn"):
+                self.add_keypoint_btn.pack_forget()
+            if hasattr(self, "delete_keypoint_btn"):
+                self.delete_keypoint_btn.pack_forget()
+            if hasattr(self, "step_label"):
+                self.step_label.config(text="Step 0 • Video team color selection — start with right team")
+
+            frame = self.current_frame_img.copy()
+            frame_matches_locked = (self.video_rois_locked_at_frame is None or 
+                                   self.current_video_frame == self.video_rois_locked_at_frame)
+            if self.show_video_rois:
+                for tid, roi in self.team_rois.items():
+                    if roi is None:
+                        continue
+                    if not frame_matches_locked:
+                        continue
+                    x1, y1, x2, y2 = roi
+                    color = tuple(int(c) for c in self.team_centers[tid]) if self.team_centers[tid] is not None else ((0, 0, 255) if tid == 0 else (0, 255, 0))
+                    overlay = frame.copy()
+                    cv2.rectangle(overlay, (x1, y1), (x2, y2), color, -1)
+                    frame = cv2.addWeighted(overlay, 0.2, frame, 0.8, 0)
+                    cv2.rectangle(frame, (x1, y1), (x2, y2), color, self.line_thickness)
+                    draw_handles(frame, (x1, y1, x2, y2), self.handle_radius)
+                    cv2.putText(frame, "Right Team" if tid == 0 else "Left Team",
+                                (x1, max(20, y1 - 10)), cv2.FONT_HERSHEY_SIMPLEX,
+                                self.text_scale, color, self.text_thickness, cv2.LINE_AA)
+            if self.temp_roi is not None and frame_matches_locked:
+                x1, y1, x2, y2 = self.temp_roi
+                cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 255), self.line_thickness)
+
+            if self.team_rois[0] is None or self.team_rois[1] is None:
+                instruction = (
+                    "Draw right team ROI first" if self.current_team_selection == 0 else
+                    "Draw left team ROI next"
+                )
+            else:
+                instruction = "Team colors selected. Choose frame and continue."
+
+            cv2.putText(
+                frame,
+                instruction,
+                (20, 40),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.8,
+                (255, 255, 255),
+                2,
+                cv2.LINE_AA
+            )
+            self.display(frame)
             return
+
         # hide normal workflow buttons
         if hasattr(self, "upload_btn"):
             self.upload_btn.pack_forget()
@@ -763,6 +1036,12 @@ class OffsideApp:
 
         if hasattr(self, "next_btn"):
             self.next_btn.grid_remove()
+
+        if hasattr(self, "back_to_video_btn"):
+            if self.video_capture is not None and self.original_img is not None:
+                self.back_to_video_btn.pack(side="left", padx=5)
+            else:
+                self.back_to_video_btn.pack_forget()
         # ------------------------------------------------
         # SHOW LOGO SCREEN BEFORE IMAGE UPLOAD
         # ------------------------------------------------
@@ -935,81 +1214,82 @@ class OffsideApp:
             #     (255, 255, 255),
             #     3
             # )
-            for tid, roi in self.team_rois.items():
+            if self.show_video_rois:
+                for tid, roi in self.team_rois.items():
 
-                if roi is None:
-                    continue
+                    if roi is None:
+                        continue
 
-                x1, y1, x2, y2 = roi
+                    x1, y1, x2, y2 = roi
 
-                # color = (255, 0, 0) if tid == 0 else (0, 0, 255)
-                color = tuple(int(c) for c in self.team_centers[tid]) #! dikra: color roi with team color
+                    # color = (255, 0, 0) if tid == 0 else (0, 0, 255)
+                    color = tuple(int(c) for c in self.team_centers[tid]) #! dikra: color roi with team color
 
-                # transparent overlay
-                overlay = img.copy()
+                    # transparent overlay
+                    overlay = img.copy()
 
-                cv2.rectangle(
-                    overlay,
-                    (x1, y1),
-                    (x2, y2),
-                    color,
-                    -1
-                )
+                    cv2.rectangle(
+                        overlay,
+                        (x1, y1),
+                        (x2, y2),
+                        color,
+                        -1
+                    )
 
-                img = cv2.addWeighted(
-                    overlay,
-                    0.2,
-                    img,
-                    0.8,
-                    0
-                )
+                    img = cv2.addWeighted(
+                        overlay,
+                        0.2,
+                        img,
+                        0.8,
+                        0
+                    )
 
-                # border
-                cv2.rectangle(
-                    img,
-                    (x1, y1),
-                    (x2, y2),
-                    color,
-                    self.line_thickness
-                )
-                draw_handles(
-                    img,
-                    (x1, y1, x2, y2),
-                    self.handle_radius
-                )
+                    # border
+                    cv2.rectangle(
+                        img,
+                        (x1, y1),
+                        (x2, y2),
+                        color,
+                        self.line_thickness
+                    )
+                    draw_handles(
+                        img,
+                        (x1, y1, x2, y2),
+                        self.handle_radius
+                    )
 
-                label = (
-                    "Defending Team"
-                    if tid == 0
-                    else "Attacking Team"
-                )
+                    label = (
+                        "Right Team"
+                        if tid == 0
+                        else "Left Team"
+                    )
 
-                cv2.putText(
-                    img,
-                    label,
-                    (x1, y1 - 10),
-                    cv2.FONT_HERSHEY_SIMPLEX,
-                    self.text_scale,
-                    color,
-                    self.text_thickness,
-                )
+                    cv2.putText(
+                        img,
+                        label,
+                        (x1, y1 - 10),
+                        cv2.FONT_HERSHEY_SIMPLEX,
+                        self.text_scale,
+                        color,
+                        self.text_thickness,
+                    )
 
-                #############################
-                # label = (
-                #     "Defending Team Sample"
-                #     if tid == 0
-                #     else "Attacking Team Sample"
-                # )
+                    #############################
+                    # label = (
+                    #     "Defending Team Sample"
+                    #     if tid == 0
+                    #     else "Attacking Team Sample"
+                    # )
 
-                # cv2.putText(
-                #     img,
-                #     label,
-                #     (x1, y1 - 10),
-                #     cv2.FONT_HERSHEY_SIMPLEX,
-                #     0.6,
-                #     color,
-                #     2,
-                # )
+                    # cv2.putText(
+                    #     img,
+                    #     label,
+                    #     (x1, y1 - 10),
+                    #     cv2.FONT_HERSHEY_SIMPLEX,
+                    #     0.6,
+                    #     color,
+                    #     2,
+                    # )
 
             if self.temp_roi:
                 x1, y1, x2, y2 = self.temp_roi
@@ -1218,7 +1498,7 @@ class OffsideApp:
             current_team_text = ""
 
         step_text = {
-            0: "Step 0 • Upload image",
+            0: "Step 0 • choose video",
             1: "Step 1 • Edit player bounding boxes",
             2: f"Step 2 • Select one player from each team{current_team_text}",
             3: "Step 3 - Draw 2 horizontal parallel pitch lines (optional)",
@@ -1254,6 +1534,12 @@ class OffsideApp:
         if hasattr(self, "attack_dir_label"):
             self.attack_dir_label.pack_forget()
 
+        if hasattr(self, "mitemp_entry"):
+            self.mitemp_entry.pack_forget()
+
+        if hasattr(self, "mitemp_label"):
+            self.mitemp_label.pack_forget()
+
         if hasattr(self, "add_keypoint_btn"):
             self.add_keypoint_btn.pack_forget()
 
@@ -1270,6 +1556,10 @@ class OffsideApp:
         if self.current_step == 5:
             self.attack_dir_label.pack(side="left", padx=(15, 5), pady=12)
             self.attack_direction_entry.pack(side="left", padx=5)
+            if hasattr(self, "mitemp_label"):
+                self.mitemp_label.pack(side="left", padx=(15, 5), pady=12)
+            if hasattr(self, "mitemp_entry"):
+                self.mitemp_entry.pack(side="left", padx=5)
 
         if self.current_step == 6:
             self.add_keypoint_btn.pack(side="left", padx=5, pady=10)
