@@ -260,6 +260,18 @@ def build_app_ui(root, app):
         anchor="center"
     )
     app.step_label.grid(row=0, column=1)
+    #khadija code
+
+    app.status_label = ttk.Label(
+        bottom,
+        text="Ready",
+        style="Dark.TLabel",
+        anchor="center"
+    )
+    app.status_label.grid(row=1, column=1)
+
+
+
 
     next_btn = ttk.Button(
         bottom,

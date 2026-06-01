@@ -148,6 +148,32 @@ class OffsideApp:
         self.video_fps = 30
         self.video_mode = False
 
+    #khadija code load cursor
+    def set_busy(self, message="Processing..."):
+        print("BUSY")
+        self.root.config(cursor="circle")
+        #self.root.config(cursor="watch")
+        self.canvas.config(cursor="circle")
+
+        if hasattr(self, "status_label"):
+            self.status_label.config(text=message)
+
+        self.root.update()
+
+    def set_normal(self):
+        print("NORMAL")
+        self.root.config(cursor="")
+        self.canvas.config(cursor="")
+
+        if hasattr(self, "status_label"):
+            self.status_label.config(text="")
+
+        self.root.update()
+
+
+
+
+
     def load_video(self):
         path = filedialog.askopenfilename(
             filetypes=[
@@ -361,19 +387,31 @@ class OffsideApp:
         self.selected_bboxes = set()
 
     def run_detection(self):
-        threading.Thread(target=self._run_detection, daemon=True).start()
 
+        threading.Thread(
+            target=self._run_detection,
+            daemon=True
+        ).start()
+
+
+
+    
     def _run_detection(self):
-        if self.original_img is None:
-            return
-        pipeline = self.get_pipeline()
-        result = pipeline.process_frame(self.original_img)
-        self.state["detections"] = result["detections"]
-        self.state["vp"] = result["vanishing_point"]
-        self.state["vph"] = result["vanishing_point_horiz"]
-        self.state["pitch_mask"] = result["pitch_mask"]
-        self.current_step = 1
-        self.root.after(0, self.show_step)
+        try:
+            #khadija code
+            self.root.after(0, lambda: self.set_busy("Running full detection pipeline..."))
+            if self.original_img is None:
+                return
+            pipeline = self.get_pipeline()
+            result = pipeline.process_frame(self.original_img)
+            self.state["detections"] = result["detections"]
+            self.state["vp"] = result["vanishing_point"]
+            self.state["vph"] = result["vanishing_point_horiz"]
+            self.state["pitch_mask"] = result["pitch_mask"]
+            self.current_step = 1
+            self.root.after(0, self.show_step)
+        finally:
+            self.root.after(0, self.set_normal)
 
     def run_pose_from_boxes(self):
         boxes = get_all_boxes(self)
@@ -555,44 +593,46 @@ class OffsideApp:
 
         # STEP 3 -> VP SELECTION -> STEP 4
         elif self.current_step == 3:
+                # use manual VP if user drew 2 lines
+                if len(self.manual_vp_lines) == 2:
 
-            # use manual VP if user drew 2 lines
-            if len(self.manual_vp_lines) == 2:
+                    l1 = self.manual_vp_lines[0]
+                    l2 = self.manual_vp_lines[1]
 
-                l1 = self.manual_vp_lines[0]
-                l2 = self.manual_vp_lines[1]
+                    vp = GeometryUtils.line_intersection(l1, l2)
 
-                vp = GeometryUtils.line_intersection(l1, l2)
+                    if vp is not None:
+                        self.state["vp"] = vp
+                
 
-                if vp is not None:
-                    self.state["vp"] = vp
+                # run processing now
+                self.run_pose_from_boxes()
+                self.run_offside()
+                
+            
 
-            # run processing now
-            self.run_pose_from_boxes()
-            self.run_offside()
+                self.current_step = 4
 
-            self.current_step = 4
 
         # STEP 4 > horizontal VP > STEP 5
         elif self.current_step == 4:
+                # use manual VP if user drew 2 lines
+                if len(self.manual_vph_lines) == 2:
 
-            # use manual VP if user drew 2 lines
-            if len(self.manual_vph_lines) == 2:
+                    l1 = self.manual_vph_lines[0]
+                    l2 = self.manual_vph_lines[1]
 
-                l1 = self.manual_vph_lines[0]
-                l2 = self.manual_vph_lines[1]
+                    vph = GeometryUtils.line_intersection(l1, l2)
 
-                vph = GeometryUtils.line_intersection(l1, l2)
+                    if vph is not None:
+                        self.state["vph"] = vph
 
-                if vph is not None:
-                    self.state["vph"] = vph
+                # run processing now
+                self.run_pose_from_boxes()
+                self.run_offside()
 
-            # run processing now
-            self.run_pose_from_boxes()
-            self.run_offside()
-
-            self.current_step = 5
-
+                self.current_step = 5
+ 
         # step 5 >> step 6
         elif self.current_step == 5:
 

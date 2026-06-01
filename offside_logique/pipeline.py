@@ -173,12 +173,20 @@ class OffsideDetectionPipeline:
 
         outputs = self.pitch_segmentation_model.run(input_tensor)
 
-        raw_logits = np.squeeze(outputs[1])
+        if len(outputs) ==2:
+            raw_logits = np.squeeze(outputs[0])
+            pred_masks = np.squeeze(outputs[1])
+            print("pred_masks shape:", pred_masks.shape)
+            print("raw_logits shape:", raw_logits.shape)
+        else:
+            raw_logits = np.squeeze(outputs[1])
+            pred_masks = np.squeeze(outputs[2])
 
-        pred_masks = np.squeeze(outputs[2])
+
+
 
         pred_labels = np.argmax(raw_logits, axis=-1)
-
+        print("pred_labels shape:", pred_labels.shape)
         TARGET_CLASS_ID = 3
 
         final_mask = np.zeros(
@@ -192,7 +200,10 @@ class OffsideDetectionPipeline:
 
             if class_id != TARGET_CLASS_ID:
                 continue
-
+            
+            # Prevent crash when fewer masks than detections
+            if i >= pred_masks.shape[0]:
+                continue
             m = pred_masks[i]
 
             m_binary = (
