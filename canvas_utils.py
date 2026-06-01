@@ -434,7 +434,11 @@ def on_mouse_drag(app, e):
             in_attacker_bbox = False
             for i, det in enumerate(app.state["detections"]):
                 if app.state["team_labels"][i] != attacking_team:
+                    # debug
+                    print('skipping defender bbox', det["bbox"])
                     continue  # skip defenders
+                # debug
+                print('assigned bbox', det['bbox'])
                 x1, y1, x2, y2 = det["bbox"]
                 if x1 <= x <= x2 and y1 <= y <= y2:
                     in_attacker_bbox = True

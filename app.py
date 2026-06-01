@@ -980,14 +980,14 @@ class OffsideApp:
                 ) = off
 
                 # draw draggable attacking keypoints
-                for det in self.state["detections"]:
+                # for det in self.state["detections"]:
 
-                    kp = det.get("offside_keypoint")
+                #     kp = det.get("offside_keypoint")
 
-                    if kp is None:
-                        continue
+                #     if kp is None:
+                #         continue
 
-                    kx, ky = int(kp[0]), int(kp[1])
+                #     kx, ky = int(kp[0]), int(kp[1])
 
                     
             self.final_render = img_save.copy()

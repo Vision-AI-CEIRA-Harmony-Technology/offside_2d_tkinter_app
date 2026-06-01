@@ -300,7 +300,10 @@ class OffsideLineComputer:
         # if manually dragged kp -> find matching bbox
         if manual_last_defender_kp is not None:
 
-            for other_det in detections:
+            for other_det, other_lbl in zip(detections, team_labels):
+
+                if other_lbl != defending_team:
+                    continue
 
                 bx1, by1, bx2, by2 = other_det["bbox"]
 
@@ -457,7 +460,6 @@ class OffsideJudge:
         )
 
         judgements = [""] * len(detections)
-
         manual_attacker_idx = None
 
         # Find if any player has manual keypoint
@@ -479,7 +481,9 @@ class OffsideJudge:
 
                 # Find correct bbox for projection (important when switching players)
                 proj_bbox = det["bbox"]
-                for other_det in detections:
+                for other_det, other_lbl in zip(detections, team_labels):
+                    if other_lbl != attacking_team:
+                        continue
                     bx1, by1, bx2, by2 = other_det["bbox"]
                     if bx1 <= kx <= bx2 and by1 <= ky <= by2:
                         proj_bbox = other_det["bbox"]
