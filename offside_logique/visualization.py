@@ -75,8 +75,12 @@ class KeypointVisualizer:
 
             okx, oky = det["offside_keypoint"]
             color = OFFSIDE_COLOR if judgement == "OFFSIDE" else ONSIDE_COLOR
-            label = "Potential Offside" if judgement == "OFFSIDE" else "Closest Attacker"
-
+            
+            if judgement == "OFFSIDE":
+                label = "Potential Offside"
+                cv2.fillPoly(out, [np.array([[int(okx) - 15, int(oky) - 45],[int(okx) - 5,  int(oky) - 45],[int(okx) - 10, int(oky) - 35]])], (0,0,255))
+            else:
+                label = "Closest Attacker"
             # keypoint
             cv2.circle(
                 out,
