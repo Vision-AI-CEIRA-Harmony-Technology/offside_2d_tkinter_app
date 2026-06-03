@@ -113,6 +113,8 @@ def build_app_ui(root, app):
     # -----------------------------
     toolbar = ttk.Frame(main, style="Toolbar.TFrame")
     toolbar.pack(fill="x", padx=20, pady=10)
+
+    
 ###############################
     app.upload_btn = ttk.Button(
         toolbar,
@@ -180,27 +182,12 @@ def build_app_ui(root, app):
         style="Action.TButton"
     )
 
-    app.add_keypoint_btn = ttk.Button(
-        toolbar,
-        text="Add keypoint",
-        command=app.toggle_add_keypoint_mode,
-        style="Action.TButton"
-    )
-
-    app.delete_keypoint_btn = ttk.Button(
-        toolbar,
-        text="Delete keypoint",
-        command=app.delete_selected_keypoint,
-        style="Action.TButton"
-    )
-
     app.attack_direction_var = tk.StringVar()
     app.attack_dir_label = ttk.Label(
         toolbar,
         text="Attack Direction:",
         style="Dark.TLabel"
     )
-    # attack_dir_label.pack(side="left", padx=(15, 5), pady=12)  #! dikra: moved to conditional in show_step
 
     app.attack_direction_entry = ttk.Entry(
         toolbar,
@@ -209,24 +196,9 @@ def build_app_ui(root, app):
         font=("Segoe UI", 10),
         style="Dark.TEntry"
     )
-    # app.attack_direction_entry.pack(side="left", padx=(0, 15), pady=10)  #! dikra: moved to conditional in show_step
 
     app.attack_direction_var.set("")
 
-    app.mitemp_var = tk.StringVar()
-    app.mitemp_label = ttk.Label(
-        toolbar,
-        text="mt:",
-        style="Dark.TLabel"
-    )
-    app.mitemp_entry = ttk.Entry(
-        toolbar,
-        textvariable=app.mitemp_var,
-        width=4,
-        font=("Segoe UI", 10),
-        style="Dark.TEntry"
-    )
-    app.mitemp_var.set("1")
 ################################
     # -----------------------------
     # CANVAS FRAME

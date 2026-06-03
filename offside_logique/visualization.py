@@ -46,7 +46,7 @@ class KeypointVisualizer:
             3.0
         )
 
-        line_thickness = max(1, int(1.5 * ui_scale))
+        line_thickness = max(1, int(0.5 * ui_scale))
         point_radius = max(1, int(2 * ui_scale))
         big_point_radius = min(5, int(3 * ui_scale))
 
@@ -81,18 +81,19 @@ class KeypointVisualizer:
             cv2.circle(
                 out,
                 (int(okx), int(oky)),
-                big_point_radius,
+                point_radius,
                 color,
                 -1
             )
 
-            cv2.circle(
-                out_save,
-                (int(okx), int(oky)),
-                big_point_radius,
-                color,
-                -1
-            )
+            # no kpts in final save
+            # cv2.circle(
+            #     out_save,
+            #     (int(okx), int(oky)),
+            #     point_radius,
+            #     color,
+            #     -1
+            # )
 
             # label
             cv2.putText(
@@ -139,13 +140,14 @@ class KeypointVisualizer:
                 -1
             )
 
-            cv2.circle(
-                out_save,
-                (px, py),
-                point_radius,
-                color,
-                -1
-            )
+            # no kpts in final save
+            # cv2.circle(
+            #     out_save,
+            #     (px, py),
+            #     point_radius,
+            #     color,
+            #     -1
+            # )
 
             vp_x, vp_y = map(int, vanishing_point)
             vph_x, vph_y = map(int, vanishing_point_horiz)
@@ -226,18 +228,19 @@ class KeypointVisualizer:
             cv2.circle(
                 out,
                 (lx, ly),
-                big_point_radius,
+                point_radius,
                 LAST_DEF_KEYPOINT_COLOR,
                 -1
             )
 
-            cv2.circle(
-                out_save,
-                (lx, ly),
-                big_point_radius,
-                LAST_DEF_KEYPOINT_COLOR,
-                -1
-            )
+            # no kpts in final save
+            # cv2.circle(
+            #     out_save,
+            #     (lx, ly),
+            #     point_radius,
+            #     LAST_DEF_KEYPOINT_COLOR,
+            #     -1
+            # )
 
             cv2.putText(
                 out,
@@ -280,13 +283,14 @@ class KeypointVisualizer:
                 -1
             )
 
-            cv2.circle(
-                out_save,
-                (px, py),
-                point_radius,
-                LAST_DEF_KEYPOINT_COLOR,
-                -1
-            )
+            # no kpts in final save
+            # cv2.circle(
+            #     out_save,
+            #     (px, py),
+            #     point_radius,
+            #     LAST_DEF_KEYPOINT_COLOR,
+            #     -1
+            # )
 
             vp_x, vp_y = map(int, vanishing_point)
             vph_x, vph_y = map(int, vanishing_point_horiz)

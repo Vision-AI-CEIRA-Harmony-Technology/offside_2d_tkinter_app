@@ -106,8 +106,7 @@ class ModelManager:
             return self._load_vitpose()
         else:
             raise ValueError(f"Unknown model type: {self.model_type}")
-    
-    
+
 
     # def _load_resnet_keypoint(self) -> torch.nn.Module:
     #     """Load KeypointRCNN ResNet50 model."""

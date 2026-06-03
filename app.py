@@ -446,12 +446,11 @@ class OffsideApp:
         self.roi_drag_mode = None
         self.roi_resize_corner = None
 
-        # Step 3 keypoint editing
+        # Step 6 keypoint editing
         self.selected_kp = None
         self.dragging_kp = False
         self.manual_last_defender_kp = None
         self.manual_last_defender_kp = None
-        self.placing_offside_kp = False
 
         # Manual VPvertical line editing
         self.manual_vp_lines = []
@@ -1159,31 +1158,14 @@ class OffsideApp:
                 cv2.rectangle(img, (x1, y1), (x2, y2), (0, 255, 255), self.line_thickness)
 
         elif self.current_step == 2:
-            # instruction = (
-            #     "Select DEFENDING team player"
-            #     if self.current_team_selection == 0
-            #     else "Select ATTACKING team player"
-            # )
-
-            # cv2.putText(
-            #     img,
-            #     instruction,
-            #     (30, 50),
-            #     cv2.FONT_HERSHEY_SIMPLEX,
-            #     1.0,
-            #     (255, 255, 255),
-            #     3
-            # )
-            if self.show_video_rois:
-                for tid, roi in self.team_rois.items():
+            for tid, roi in self.team_rois.items():
 
                     if roi is None:
                         continue
 
                     x1, y1, x2, y2 = roi
 
-                    # color = (255, 0, 0) if tid == 0 else (0, 0, 255)
-                    color = tuple(int(c) for c in self.team_centers[tid]) #! dikra: color roi with team color
+                color = tuple(int(c) for c in self.team_centers[tid]) #! dikra: color roi with team color
 
                     # transparent overlay
                     overlay = img.copy()
@@ -1233,23 +1215,6 @@ class OffsideApp:
                         color,
                         self.text_thickness,
                     )
-
-                    #############################
-                    # label = (
-                    #     "Defending Team Sample"
-                    #     if tid == 0
-                    #     else "Attacking Team Sample"
-                    # )
-
-                    # cv2.putText(
-                    #     img,
-                    #     label,
-                    #     (x1, y1 - 10),
-                    #     cv2.FONT_HERSHEY_SIMPLEX,
-                    #     0.6,
-                    #     color,
-                    #     2,
-                    # )
 
             if self.temp_roi:
                 x1, y1, x2, y2 = self.temp_roi
@@ -1409,14 +1374,14 @@ class OffsideApp:
                 ) = off
 
                 # draw draggable attacking keypoints
-                for det in self.state["detections"]:
+                # for det in self.state["detections"]:
 
-                    kp = det.get("offside_keypoint")
+                #     kp = det.get("offside_keypoint")
 
-                    if kp is None:
-                        continue
+                #     if kp is None:
+                #         continue
 
-                    kx, ky = int(kp[0]), int(kp[1])
+                #     kx, ky = int(kp[0]), int(kp[1])
 
                     
             self.final_render = img_save.copy()
@@ -1465,7 +1430,7 @@ class OffsideApp:
             4: "Step 4 - Draw 2 vertical parallel pitch lines ",
             5: "Step 5 - Review team assignment",
             6: "Step 6 - Edit offside keypoints",
-            7: "Step 7 -Final Visualisation - Save Result"
+            7: "Step 7 - Final Visualisation - Save Result"
         }
 
         if hasattr(self, "step_label"):
@@ -1494,17 +1459,11 @@ class OffsideApp:
         if hasattr(self, "attack_dir_label"):
             self.attack_dir_label.pack_forget()
 
-        if hasattr(self, "mitemp_entry"):
-            self.mitemp_entry.pack_forget()
+        # if hasattr(self, "add_keypoint_btn"):
+        #     self.add_keypoint_btn.pack_forget()
 
-        if hasattr(self, "mitemp_label"):
-            self.mitemp_label.pack_forget()
-
-        if hasattr(self, "add_keypoint_btn"):
-            self.add_keypoint_btn.pack_forget()
-
-        if hasattr(self, "delete_keypoint_btn"):
-            self.delete_keypoint_btn.pack_forget()
+        # if hasattr(self, "delete_keypoint_btn"):
+        #     self.delete_keypoint_btn.pack_forget()
 
         # show only during bbox editing
         if self.current_step == 1:
@@ -1520,15 +1479,6 @@ class OffsideApp:
                 self.mitemp_label.pack(side="left", padx=(15, 5), pady=12)
             if hasattr(self, "mitemp_entry"):
                 self.mitemp_entry.pack(side="left", padx=5)
-
-        if self.current_step == 6:
-            self.add_keypoint_btn.pack(side="left", padx=5, pady=10)
-            self.delete_keypoint_btn.pack(side="left", padx=5, pady=10)
-        else:
-            if self.placing_offside_kp:
-                self.placing_offside_kp = False
-                if hasattr(self, "add_keypoint_btn"):
-                    self.add_keypoint_btn.config(text="Add keypoint")
 
         self.display(img)
 
@@ -1569,63 +1519,6 @@ class OffsideApp:
             self.show_step()
             return
 
-    def toggle_add_keypoint_mode(self):
-        self.placing_offside_kp = not self.placing_offside_kp
-        if hasattr(self, "add_keypoint_btn"):
-            self.add_keypoint_btn.config(
-                text="Cancel add keypoint" if self.placing_offside_kp else "Add keypoint"
-            )
-
-    def place_offside_keypoint_at(self, x, y):
-        if self.original_img is None:
-            return False
-
-        attackers = []
-        attack_info = self.state.get("attack_info") or {}
-        attacking_team = attack_info.get("attacking_team")
-
-        for idx, label in enumerate(self.state.get("team_labels", [])):
-            if attacking_team is None or label == attacking_team:
-                attackers.append(idx)
-
-        if not attackers:
-            attackers = list(range(len(self.state.get("detections", []))))
-
-        if not attackers:
-            return False
-
-        def center_dist(idx):
-            x1, y1, x2, y2 = self.state["detections"][idx]["bbox"]
-            cx = (x1 + x2) / 2.0
-            cy = (y1 + y2) / 2.0
-            return (cx - x) ** 2 + (cy - y) ** 2
-
-        candidates = []
-        inside_candidates = []
-        for idx in attackers:
-            x1, y1, x2, y2 = self.state["detections"][idx]["bbox"]
-            if x1 <= x <= x2 and y1 <= y <= y2:
-                inside_candidates.append(idx)
-
-        if inside_candidates:
-            candidates = inside_candidates
-        else:
-            candidates = attackers
-
-        no_manual = [idx for idx in candidates if "manual_offside_kp" not in self.state["detections"][idx]]
-        if no_manual:
-            target_idx = min(no_manual, key=center_dist)
-        else:
-            target_idx = min(candidates, key=center_dist)
-
-        det = self.state["detections"][target_idx]
-        det["manual_offside_kp"] = (x, y)
-        det["offside_keypoint"] = (x, y)
-        self.selected_kp = ("attacker", target_idx)
-        self.dragging_kp = False
-        self.recompute_offside()
-        self.show_step()
-        return True
 
     def undo_box(self):
 
