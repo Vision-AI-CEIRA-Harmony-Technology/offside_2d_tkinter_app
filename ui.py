@@ -123,7 +123,50 @@ def build_app_ui(root, app):
         style="Action.TButton"
     )
 
+    app.upload_video_btn = ttk.Button(
+        toolbar,
+        text="Upload Video",
+        command=app.load_video,
+        style="Action.TButton"
+    )
+
+    app.upload_video_btn.pack(side="left", padx=5, pady=10)
+
     app.upload_btn.pack(side="left", padx=5, pady=10)
+    app.play_btn = ttk.Button(
+        toolbar,
+        text="Play/Pause",
+        command=app.toggle_play_video,
+        style="Action.TButton"
+    )
+
+    app.prev_frame_btn = ttk.Button(
+        toolbar,
+        text="◀ Frame",
+        command=app.prev_frame,
+        style="Action.TButton"
+    )
+
+    app.next_frame_btn = ttk.Button(
+        toolbar,
+        text="Frame ▶",
+        command=app.next_frame,
+        style="Action.TButton"
+    )
+
+    app.choose_frame_btn = ttk.Button(
+        toolbar,
+        text="Choose Frame",
+        command=app.choose_current_frame,
+        style="Action.TButton"
+    )
+
+    app.back_to_video_btn = ttk.Button(
+        toolbar,
+        text="Back to Video",
+        command=app.back_to_video,
+        style="Action.TButton"
+    )
 
     app.undo_btn = ttk.Button(
         toolbar,
