@@ -11,6 +11,10 @@ def build_app_ui(root, app):
     except:
         root.attributes("-zoomed", True)
     root.configure(bg="#111827")
+    root.option_add("*TCombobox*Listbox.background", "#374151")
+    root.option_add("*TCombobox*Listbox.foreground", "white")
+    root.option_add("*TCombobox*Listbox.selectBackground", "#4B5563")
+    root.option_add("*TCombobox*Listbox.selectForeground", "white")
 
     # -----------------------------
     # STYLE
@@ -88,6 +92,23 @@ def build_app_ui(root, app):
         "Dark.TEntry",
         foreground=[("focus", "white")],
         fieldbackground=[("focus", "#4B5563")]
+    )
+
+    style.configure(
+        "Dark.TCombobox",
+        fieldbackground="#374151",
+        background="#374151",
+        foreground="white",
+        arrowcolor="white",
+        borderwidth=1
+    )
+
+    style.map(
+        "Dark.TCombobox",
+        fieldbackground=[("readonly", "#374151")],
+        foreground=[("readonly", "white")],
+        selectbackground=[("readonly", "#4B5563")],
+        selectforeground=[("readonly", "white")]
     )
 
     # -----------------------------
@@ -194,24 +215,31 @@ def build_app_ui(root, app):
         style="Action.TButton"
     )
 
-    app.attack_direction_var = tk.StringVar()
+    app.attack_direction_var = tk.StringVar(value="right")
     app.attack_dir_label = ttk.Label(
         toolbar,
         text="Attack Direction:",
         style="Dark.TLabel"
     )
-    # attack_dir_label.pack(side="left", padx=(15, 5), pady=12)  #! dikra: moved to conditional in show_step
-
-    app.attack_direction_entry = ttk.Entry(
+    app.attack_direction_entry = ttk.Combobox(
         toolbar,
         textvariable=app.attack_direction_var,
+        values=["right", "left"],
         width=8,
-        font=("Segoe UI", 10),
-        style="Dark.TEntry"
+        state="readonly"
     )
+    # attack_dir_label.pack(side="left", padx=(15, 5), pady=12)  #! dikra: moved to conditional in show_step
+
+    # app.attack_direction_entry = ttk.Entry(
+    #     toolbar,
+    #     textvariable=app.attack_direction_var,
+    #     width=8,
+    #     font=("Segoe UI", 10),
+    #     style="Dark.TEntry"
+    # )
     # app.attack_direction_entry.pack(side="left", padx=(0, 15), pady=10)  #! dikra: moved to conditional in show_step
 
-    app.attack_direction_var.set("")
+    # app.attack_direction_var.set("")
 
     app.mitemp_var = tk.StringVar()
     app.mitemp_label = ttk.Label(
