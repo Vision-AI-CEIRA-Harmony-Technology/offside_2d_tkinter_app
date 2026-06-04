@@ -161,6 +161,7 @@ class OffsideApp:
         self.selected_kp = None
         self.dragging_kp = False
         self.manual_last_defender_kp = None
+        self.manual_last_defender_proj = None
         # -----------------------------
         # VIDEO STATE
         # -----------------------------
@@ -450,7 +451,7 @@ class OffsideApp:
         self.selected_kp = None
         self.dragging_kp = False
         self.manual_last_defender_kp = None
-        self.manual_last_defender_kp = None
+        self.manual_last_defender_proj = None
 
         # Manual VPvertical line editing
         self.manual_vp_lines = []
@@ -579,7 +580,9 @@ class OffsideApp:
             self.state["vp"],
             self.state["vph"],
             self.original_img.shape[:2],
-            manual_last_defender_kp=self.manual_last_defender_kp
+            manual_last_defender_kp=self.manual_last_defender_kp,
+            manual_last_defender_proj=self.manual_last_defender_proj,
+            
         )
 
         # -----------------------------
@@ -594,7 +597,7 @@ class OffsideApp:
         self.video_team_centers[1] = c1
 
     def recompute_offside(self):
-
+        print("RECOMPUTE HAPPENED")
         detections = self.state["detections"]
 
         pipeline = self.get_pipeline()
@@ -606,7 +609,8 @@ class OffsideApp:
             self.state["vp"],
             self.state["vph"],
             self.original_img.shape[:2],
-            manual_last_defender_kp=self.manual_last_defender_kp
+            manual_last_defender_kp=self.manual_last_defender_kp,
+            manual_last_defender_proj=self.manual_last_defender_proj
         )
 
         self.state["offside"] = result
@@ -796,7 +800,8 @@ class OffsideApp:
                 self.state["attack_info"]["direction"] = raw_direction
 
             self._apply_mitemp_to_attack_info(self.state["attack_info"])
-            self.recompute_offside()
+            # self.recompute_offside()
+            self.run_offside()
 
             self.current_step = 6
 
@@ -1483,7 +1488,6 @@ class OffsideApp:
 
         self.display(img)
 
-    #* no backend logic for deleting kpts, to be removed
     def delete_selected_box(self):
 
         if self.selected_box is None:
@@ -1495,6 +1499,7 @@ class OffsideApp:
 
         self.show_step()
 
+    #TODO: no backend logic for deleting kpts, to be removed
     def delete_selected_keypoint(self):
 
         if self.selected_kp is None:

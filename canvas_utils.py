@@ -224,7 +224,7 @@ def on_mouse_down(app, e):
         hit = detect_keypoint_hit(app, x, y)
 
         if hit is not None:
-            print(hit)
+            print("setting hit in mouse down", hit)
             app.selected_kp = hit
             app.dragging_kp = True
 
@@ -309,6 +309,7 @@ def on_mouse_down(app, e):
 
 def on_mouse_drag(app, e):
     x, y = canvas_to_image(app, e.x, e.y)
+    print("new position in mouse drag", x, y)
     # -----------------------------
     # STEP 3 : DRAW VP LINE
     # -----------------------------
@@ -428,6 +429,7 @@ def on_mouse_drag(app, e):
     if app.current_step == 6 and app.dragging_kp:
 
         kp_type, idx = app.selected_kp
+        print("hit in in mouse drag", kp_type, idx)
 
         if kp_type == "attacker":
             attacking_team = app.state["attack_info"]["attacking_team"]
@@ -444,11 +446,10 @@ def on_mouse_drag(app, e):
             if not in_attacker_bbox:
                 return
             
-            #! dikra: solve disappearing potential offsideers
             target_det = app.state["detections"][idx]
             target_det["manual_offside_kp"] = (x, y)
             target_det["offside_keypoint"] = (x, y)
-
+            print("recomputing offside")
             app.recompute_offside()
 
         elif kp_type == "attacker_projected":
@@ -456,27 +457,34 @@ def on_mouse_drag(app, e):
             orig_projection = target_det.get("offside_proj_point")
             fixed_x = orig_projection[0] if orig_projection is not None else x
             target_det["offside_proj_point"] = (fixed_x, y)
+            target_det["manual_offside_proj"] = (fixed_x, y) 
 
-            result = app.state.get("offside")
-            if result is not None:
-                offside_line, ground_line, all_def_lines, last_kp, projected_point, projection_points, x_axis, judgements = result
-                if not any(j == "OFFSIDE" for j in judgements):
-                    vp = app.state.get("vp")
-                    if vp is not None:
-                        H, W = app.original_img.shape[:2]
-                        new_offside_line = GeometryUtils.extend_line_to_frame(vp, (x, y), W, H)
-                        app.state["offside"] = (
-                            new_offside_line,
-                            new_offside_line,
-                            all_def_lines,
-                            last_kp,
-                            projected_point,
-                            projection_points,
-                            x_axis,
-                            judgements,
-                        )
+            # result = app.state.get("offside")
+            # if result is not None:
+            #     offside_line, ground_line, all_def_lines, last_kp, projected_point, projection_points, x_axis, judgements = result
+            #     print(judgements)
+            #     if not any(j == "OFFSIDE" for j in judgements):
+            #         vp = app.state.get("vp")
+            #         if vp is not None:
+            #             print("CREATING NEW OFFSIDE LINE")
+            #             H, W = app.original_img.shape[:2]
+            #             new_offside_line = GeometryUtils.extend_line_to_frame(vp, (x, y), W, H)
+            #             app.state["offside"] = (
+            #                 new_offside_line,
+            #                 new_offside_line,
+            #                 all_def_lines,
+            #                 last_kp,
+            #                 projected_point,
+            #                 projection_points,
+            #                 x_axis,
+            #                 judgements,
+            #             )
+            # app.recompute_offside()
+            
 
         elif kp_type == "defender":
+            app.manual_last_defender_proj = None
+
             attacking_team = app.state["attack_info"]["attacking_team"]
             in_defender_bbox = False
             for i, det in enumerate(app.state["detections"]):
@@ -489,6 +497,7 @@ def on_mouse_drag(app, e):
             
             if not in_defender_bbox:
                 return  # block drag outside defender bboxes
+            
             app.manual_last_defender_kp = (x, y)
             app.recompute_offside()
 
@@ -498,16 +507,16 @@ def on_mouse_drag(app, e):
             result = app.state.get("offside")
             if result is not None:
                 offside_line, ground_line, all_def_lines, last_kp, projected_point, projection_points, x_axis, judgements = result
+                fixed_x = projected_point[0] if projected_point is not None else x
+                new_projected = (fixed_x, y)
                 vp = app.state.get("vp")
                 if vp is not None:
                     H, W = app.original_img.shape[:2]
-                    fixed_x = projected_point[0] if projected_point is not None else x
-                    new_projected = (fixed_x, y)
                     new_offside_line = GeometryUtils.extend_line_to_frame(vp, new_projected, W, H)
-                    new_ground_line = new_offside_line
+                    # new_ground_line = new_offside_line
                     app.state["offside"] = (
                         new_offside_line,
-                        new_ground_line,
+                        new_offside_line,
                         all_def_lines,
                         last_kp,
                         new_projected,
@@ -515,6 +524,10 @@ def on_mouse_drag(app, e):
                         x_axis,
                         judgements,
                     )
+
+            app.manual_last_defender_proj = (fixed_x, y)
+            print("SETTING MANUAL PROJ POINT FOR THE FIRST TIME", app.manual_last_defender_proj)
+            app.recompute_offside()
 
         app.show_step()
         return
