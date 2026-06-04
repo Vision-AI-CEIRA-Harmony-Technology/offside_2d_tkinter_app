@@ -1167,7 +1167,7 @@ class OffsideApp:
 
                     x1, y1, x2, y2 = roi
 
-                color = tuple(int(c) for c in self.team_centers[tid]) #! dikra: color roi with team color
+                    color = tuple(int(c) for c in self.team_centers[tid]) #! dikra: color roi with team color
 
                     # transparent overlay
                     overlay = img.copy()
