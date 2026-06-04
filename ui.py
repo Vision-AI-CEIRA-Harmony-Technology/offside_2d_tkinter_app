@@ -203,19 +203,19 @@ def build_app_ui(root, app):
         style="Action.TButton"
     )
 
-    app.add_keypoint_btn = ttk.Button(
-        toolbar,
-        text="Add keypoint",
-        command=app.toggle_add_keypoint_mode,
-        style="Action.TButton"
-    )
+    # app.add_keypoint_btn = ttk.Button(
+    #     toolbar,
+    #     text="Add keypoint",
+    #     command=app.toggle_add_keypoint_mode,
+    #     style="Action.TButton"
+    # )
 
-    app.delete_keypoint_btn = ttk.Button(
-        toolbar,
-        text="Delete keypoint",
-        command=app.delete_selected_keypoint,
-        style="Action.TButton"
-    )
+    # app.delete_keypoint_btn = ttk.Button(
+    #     toolbar,
+    #     text="Delete keypoint",
+    #     command=app.delete_selected_keypoint,
+    #     style="Action.TButton"
+    # )
 
     app.attack_direction_var = tk.StringVar(value="Right")
     app.attack_dir_label = ttk.Label(
@@ -230,6 +230,23 @@ def build_app_ui(root, app):
         width=8,
         state="readonly"
     )
+    app.mitemp_var = tk.StringVar(value="1")
+
+    app.mitemp_label = ttk.Label(
+        toolbar,
+        text="Mi-temps:",
+        style="Dark.TLabel"
+    )
+
+    app.mitemp_entry = ttk.Combobox(
+        toolbar,
+        textvariable=app.mitemp_var,
+        values=["1", "2"],
+        state="readonly",
+        width=5,
+        style="Dark.TCombobox"
+    )
+
     # attack_dir_label.pack(side="left", padx=(15, 5), pady=12)  #! dikra: moved to conditional in show_step
 
     # app.attack_direction_entry = ttk.Entry(

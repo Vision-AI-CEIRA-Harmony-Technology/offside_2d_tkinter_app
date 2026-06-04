@@ -566,6 +566,9 @@ class OffsideApp:
 
         if manual_direction is not None:
             attack_info["direction"] = manual_direction
+            attack_info = self._apply_mitemp_to_attack_info(
+                attack_info
+            )
 
         # first selected team = defending or swapped by mitemp
         self._apply_mitemp_to_attack_info(attack_info)
@@ -601,6 +604,9 @@ class OffsideApp:
 
         pipeline = self.get_pipeline()
         attack_info = self._apply_mitemp_to_attack_info(self.state["attack_info"])
+        attack_info = self._apply_mitemp_to_attack_info(
+            self.state["attack_info"]
+        )
         result = pipeline.offside_detector.compute_offside_status(
             detections,
             self.state["team_labels"],
@@ -720,6 +726,7 @@ class OffsideApp:
                 ]
 
             if self.team_rois[0] is not None and self.team_rois[1] is not None:
+                self._determine_left_right_teams()
                 self.current_step = 3
             else:
                 self.current_step = 2
@@ -931,6 +938,8 @@ class OffsideApp:
                 self.choose_frame_btn.pack(side="left", padx=5)
             if hasattr(self, "attack_direction_entry"):
                 self.attack_direction_entry.pack_forget()
+                self.mitemp_label.pack_forget()
+                self.mitemp_entry.pack_forget()
             if hasattr(self, "attack_dir_label"):
                 self.attack_dir_label.pack_forget()
             if hasattr(self, "mitemp_entry"):
@@ -1167,7 +1176,7 @@ class OffsideApp:
 
                     x1, y1, x2, y2 = roi
 
-                color = tuple(int(c) for c in self.team_centers[tid]) #! dikra: color roi with team color
+                    color = tuple(int(c) for c in self.team_centers[tid]) #! dikra: color roi with team color
 
                     # transparent overlay
                     overlay = img.copy()
@@ -1457,6 +1466,8 @@ class OffsideApp:
 
         if hasattr(self, "attack_direction_entry"):
             self.attack_direction_entry.pack_forget()
+            self.mitemp_label.pack_forget()
+            self.mitemp_entry.pack_forget()
 
         if hasattr(self, "attack_dir_label"):
             self.attack_dir_label.pack_forget()
@@ -1477,6 +1488,16 @@ class OffsideApp:
         if self.current_step == 5:
             self.attack_dir_label.pack(side="left", padx=(15, 5), pady=12)
             self.attack_direction_entry.pack(side="left", padx=5)
+            self.mitemp_label.pack(
+                side="left",
+                padx=(15, 5),
+                pady=12
+            )
+
+            self.mitemp_entry.pack(
+                side="left",
+                padx=5
+            )
             if hasattr(self, "mitemp_label"):
                 self.mitemp_label.pack(side="left", padx=(15, 5), pady=12)
             if hasattr(self, "mitemp_entry"):
