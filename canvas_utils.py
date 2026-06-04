@@ -224,6 +224,7 @@ def on_mouse_down(app, e):
         hit = detect_keypoint_hit(app, x, y)
 
         if hit is not None:
+            print(hit)
             app.selected_kp = hit
             app.dragging_kp = True
 
@@ -666,6 +667,7 @@ def on_mouse_drag(app, e):
 def detect_keypoint_hit(app, x, y, radius=10):
     """Detect if mouse clicked on an editable keypoint (attacker or defender)."""
     # ATTACKER OFFSIDE KEYPOINTS
+    print(len(app.state["detections"]), "checking keypoints for hit detection")
     for i, det in enumerate(app.state["detections"]):
         kp = det.get("offside_keypoint")
         if kp is None:

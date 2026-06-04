@@ -632,7 +632,8 @@ class OffsideApp:
 
         # Only recompute offside after a frame has been chosen
         if self.original_img is not None:
-            self.run_offside()
+            # self.run_offside()
+            self.recompute_offside() #! dikra
 
     def _determine_left_right_teams(self):
         """Determine which team ID is on left/right based on ROI center X positions."""
@@ -1482,7 +1483,7 @@ class OffsideApp:
 
         self.display(img)
 
-
+    #* no backend logic for deleting kpts, to be removed
     def delete_selected_box(self):
 
         if self.selected_box is None:

@@ -469,11 +469,13 @@ class OffsideJudge:
                 #* support multiple offsiders: this is useless now?
                 # break
 
+        # print(len(detections), len(team_labels), "Starting judgement loop")
         for i, (det, lbl) in enumerate(zip(detections, team_labels)):
             if lbl != attacking_team:
                 continue
 
             manual_kp = det.get("manual_offside_kp")
+            # print("manual keypiont", manual_kp, lbl, i, manual_attacker_idx)
 
             # Use manual keypoint if available
             if manual_kp is not None:
@@ -507,6 +509,7 @@ class OffsideJudge:
                 #     )
                 # )
                 det["offside_keypoint"] = manual_kp
+                # if det.get("offside_proj_point") is None:
                 det["offside_proj_point"] = projected_point
 
                 attack_direction = attack_info["direction"]
@@ -595,6 +598,7 @@ class OffsideJudge:
                     selected_kp, attacker_ground_point, adv_proj = best
 
                     det["offside_keypoint"] = selected_kp
+                    # if det.get("offside_proj_point") is None:
                     det["offside_proj_point"] = attacker_ground_point
 
                     attack_direction = attack_info["direction"]
