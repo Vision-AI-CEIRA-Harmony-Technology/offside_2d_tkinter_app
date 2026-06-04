@@ -344,6 +344,8 @@ class OffsideApp:
         self._determine_left_right_teams()
         self.run_detection()
         self.show_step()
+        self.manual_last_defender_kp = None
+        self.selected_kp = None
 
     def delete_selected_roi(self):
 
