@@ -706,6 +706,33 @@ class OffsideApp:
             return raw_direction in ("left", "right")
         return False
 
+    def _line_angle(self, line):
+
+        (x1, y1), (x2, y2) = line
+
+        return abs(
+            np.degrees(
+                np.arctan2(
+                    y2 - y1,
+                    x2 - x1
+                )
+            )
+        )
+
+
+    def _is_valid_vertical_line(self, line):
+
+        angle = self._line_angle(line)
+
+        return angle > 60
+
+
+    def _is_valid_horizontal_line(self, line):
+
+        angle = self._line_angle(line)
+
+        return angle < 30
+
     def next_step(self):
 
         # STEP 0 -> RUN DETECTION -> STEP 1
