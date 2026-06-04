@@ -607,9 +607,9 @@ def on_mouse_drag(app, e):
         set_box(app, app.selected_box, new_box)
         app.start_x, app.start_y = x, y
 
-        print("mouse image:", x, y)
-        print("roi:", get_roi(app, app.selected_roi))
-        print("scale:", app.display_scale)
+        # print("mouse image:", x, y)
+        # print("roi:", get_roi(app, app.selected_roi))
+        # print("scale:", app.display_scale)
     elif app.drag_mode == "resize" and app.selected_box is not None:
         x1, y1, x2, y2 = get_box(app, app.selected_box)
         # top-left

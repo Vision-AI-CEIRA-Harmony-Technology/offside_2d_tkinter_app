@@ -65,11 +65,11 @@ class OffsideApp:
         self.display_scale = 1.0
         self.offset_x = 0
         self.offset_y = 0
-        self.line_thickness = 2
+        self.line_thickness = 1
         self.text_scale = 0.55
         self.text_thickness = 2
-        self.handle_radius = 5
-        self.point_radius = 4
+        self.handle_radius = 2
+        self.point_radius = 2
 
         # Bind the canvas event handlers from helper utilities
         self.on_mouse_down = lambda e: on_mouse_down(self, e)
@@ -1165,7 +1165,7 @@ class OffsideApp:
 
                     x1, y1, x2, y2 = roi
 
-                color = tuple(int(c) for c in self.team_centers[tid]) #! dikra: color roi with team color
+                    color = tuple(int(c) for c in self.team_centers[tid]) #! dikra: color roi with team color
 
                     # transparent overlay
                     overlay = img.copy()
