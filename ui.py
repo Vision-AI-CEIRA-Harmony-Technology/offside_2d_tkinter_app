@@ -134,6 +134,8 @@ def build_app_ui(root, app):
     # -----------------------------
     toolbar = ttk.Frame(main, style="Toolbar.TFrame")
     toolbar.pack(fill="x", padx=20, pady=10)
+
+    
 ###############################
     app.upload_btn = ttk.Button(
         toolbar,
@@ -241,20 +243,6 @@ def build_app_ui(root, app):
 
     # app.attack_direction_var.set("")
 
-    app.mitemp_var = tk.StringVar()
-    app.mitemp_label = ttk.Label(
-        toolbar,
-        text="mt:",
-        style="Dark.TLabel"
-    )
-    app.mitemp_entry = ttk.Entry(
-        toolbar,
-        textvariable=app.mitemp_var,
-        width=4,
-        font=("Segoe UI", 10),
-        style="Dark.TEntry"
-    )
-    app.mitemp_var.set("1")
 ################################
     # -----------------------------
     # CANVAS FRAME
