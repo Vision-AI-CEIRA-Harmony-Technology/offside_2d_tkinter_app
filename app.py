@@ -1123,10 +1123,10 @@ class OffsideApp:
         )
 
         # reusable drawing sizes
-        self.line_thickness = max(1, int(2 * self.ui_scale))
+        self.line_thickness = max(1, int(0.3 * self.ui_scale))
         self.small_thickness = max(1, int(1 * self.ui_scale))
-        self.handle_radius = max(2, int(5 * self.ui_scale))
-        self.point_radius = max(1, int(4 * self.ui_scale))
+        self.handle_radius = max(2, int(1.5 * self.ui_scale))
+        self.point_radius = max(1, int(1.5 * self.ui_scale))
         self.text_scale = max(0.35, 0.55 * self.ui_scale)
         self.text_thickness = max(1, int(2 * self.ui_scale))
         if self.current_step == 1:
