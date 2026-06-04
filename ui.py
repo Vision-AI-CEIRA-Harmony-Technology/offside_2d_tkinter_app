@@ -215,7 +215,7 @@ def build_app_ui(root, app):
         style="Action.TButton"
     )
 
-    app.attack_direction_var = tk.StringVar(value="right")
+    app.attack_direction_var = tk.StringVar(value="Right")
     app.attack_dir_label = ttk.Label(
         toolbar,
         text="Attack Direction:",
@@ -224,7 +224,7 @@ def build_app_ui(root, app):
     app.attack_direction_entry = ttk.Combobox(
         toolbar,
         textvariable=app.attack_direction_var,
-        values=["right", "left"],
+        values=["Right", "Left"],
         width=8,
         state="readonly"
     )
