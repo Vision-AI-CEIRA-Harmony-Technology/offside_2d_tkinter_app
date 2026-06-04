@@ -842,6 +842,11 @@ class OffsideApp:
         self.video_playing = False
         self.original_img = None
         self.show_video_rois = False
+        self.zoom_level = 1.0
+        self.zoom_center_x = None
+        self.zoom_center_y = None
+        self.zoom_crop_x1 = 0
+        self.zoom_crop_y1 = 0
         self.show_step()
 
     def display(self, img):
