@@ -741,8 +741,8 @@ class OffsideApp:
 
         # Only recompute offside after a frame has been chosen
         if self.original_img is not None:
-            # self.run_offside()
-            self.recompute_offside() #! dikra
+            self.run_offside()
+
 
     def _determine_left_right_teams(self):
         """Determine which team ID is on left/right based on ROI center X positions."""
@@ -933,8 +933,8 @@ class OffsideApp:
                 self.state["attack_info"]["direction"] = raw_direction
 
             self._apply_mitemp_to_attack_info(self.state["attack_info"])
-            # self.recompute_offside()
-            self.run_offside()
+            self.recompute_offside()
+            # self.run_offside()
 
             self.current_step = 6
 
