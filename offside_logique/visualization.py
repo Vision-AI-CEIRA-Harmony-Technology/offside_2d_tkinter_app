@@ -75,7 +75,14 @@ class KeypointVisualizer:
 
             okx, oky = det["offside_keypoint"]
             color = OFFSIDE_COLOR if judgement == "OFFSIDE" else ONSIDE_COLOR
-            label = "Potential Offside" if judgement == "OFFSIDE" else "Closest Attacker"
+            #label = "Potential Offside" if judgement == "OFFSIDE" else "Closest Attacker"
+
+            if judgement == "OFFSIDE":
+                label = ""
+                cv2.fillPoly(out, [np.array([[int(okx) - 15, int(oky) - 45],[int(okx) - 5,  int(oky) - 45],[int(okx) - 10, int(oky) - 35]])], OFFSIDE_COLOR)
+            else:
+                label = ""
+                cv2.fillPoly(out, [np.array([[int(okx) - 15, int(oky) - 45],[int(okx) - 5,  int(oky) - 45],[int(okx) - 10, int(oky) - 35]])], ONSIDE_COLOR)
 
             # keypoint
             cv2.circle(
@@ -94,7 +101,8 @@ class KeypointVisualizer:
             #     color,
             #     -1
             # )
-
+            """
+            #No text lastDef
             # label
             cv2.putText(
                 out,
@@ -105,7 +113,7 @@ class KeypointVisualizer:
                 color,
                 text_thickness
             )
-
+            """
             proj = det.get("offside_proj_point")
 
             if proj is None:
@@ -241,7 +249,17 @@ class KeypointVisualizer:
             #     LAST_DEF_KEYPOINT_COLOR,
             #     -1
             # )
-
+            
+            
+            cv2.fillPoly(out, [np.array([
+                [int(lx + 5) - 5, int(ly - 35) - 5],  # Vertex 1
+                [int(lx + 5) + 5, int(ly - 35) - 5],  # Vertex 2
+                [int(lx + 5),     int(ly - 35) + 5]   # Vertex 3
+            ])], LAST_DEF_KEYPOINT_COLOR)
+                        
+            
+            """
+            #No text lastDef
             cv2.putText(
                 out,
                 "Last Def",
@@ -251,7 +269,7 @@ class KeypointVisualizer:
                 LAST_DEF_KEYPOINT_COLOR,
                 text_thickness
             )
-
+            """
         if last_kp is not None and projected_point is not None:
 
             px, py = int(projected_point[0]), int(projected_point[1])
