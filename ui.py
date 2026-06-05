@@ -139,7 +139,7 @@ def build_app_ui(root, app):
     app.content_container = content
     app.sidebar_handle = tk.Label(
         main,
-        text="",
+        text=">>",
         bg="#111827",
         fg="white",
         font=("Segoe UI", 14, "bold"),
