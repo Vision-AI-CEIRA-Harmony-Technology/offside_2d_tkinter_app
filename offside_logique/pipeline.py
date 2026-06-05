@@ -204,9 +204,6 @@ class OffsideDetectionPipeline:
             if class_id != TARGET_CLASS_ID:
                 continue
 
-            # Prevent crash when fewer masks than detections
-            if i >= pred_masks.shape[0]:
-                continue
 
             m = pred_masks[i]
             """
