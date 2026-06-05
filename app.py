@@ -55,6 +55,7 @@ class OffsideApp:
             "attack_info": None,
         }
         self.current_step = 0
+        self.sidebar_visible = False
         self.selected_box = None
         self.drag_mode = None
         self.resize_corner = None
@@ -175,6 +176,103 @@ class OffsideApp:
         self.video_mode = False
         self.video_rois_locked_at_frame = None
         self.video_rois_locked_at_frame = None
+
+    def toggle_sidebar(self):
+
+        if self.sidebar_visible:
+
+            self.sidebar.pack_forget()
+
+            self.sidebar_handle.config(text=">>")
+
+            self.sidebar_visible = False
+
+        else:
+
+            self.sidebar.pack(
+                side="left",
+                fill="y",
+                padx=(15, 5),
+                pady=10,
+                before=self.workspace
+            )
+
+            self.sidebar_handle.config(text="<<")
+
+            self.sidebar_visible = True
+    def update_sidebar(self):
+        if not hasattr(self, "left_team_label"):
+            return
+        self.half_label.config(
+            text=f"Half : {self.mitemp_var.get()}"
+        )
+        # Left team
+        if self.left_team_id is not None:
+            self.left_team_label.config(
+                text=f"Left Team : Team {self.left_team_id}"
+            )
+
+        # Right team
+        if self.right_team_id is not None:
+            self.right_team_label.config(
+                text=f"Right Team : Team {self.right_team_id}"
+            )
+
+        # Team 0 color
+        c0 = self.state.get("team_color_0")
+
+        if c0 is not None:
+
+            color = "#{:02x}{:02x}{:02x}".format(
+                int(c0[2]),
+                int(c0[1]),
+                int(c0[0])
+            )
+
+            self.left_team_color.delete("all")
+
+            self.left_team_color.create_rectangle(
+                0,
+                0,
+                40,
+                20,
+                fill=color,
+                outline=color
+            )
+
+        # Team 1 color
+        c1 = self.state.get("team_color_1")
+
+        if c1 is not None:
+
+            color = "#{:02x}{:02x}{:02x}".format(
+                int(c1[2]),
+                int(c1[1]),
+                int(c1[0])
+            )
+
+            self.right_team_color.delete("all")
+
+            self.right_team_color.create_rectangle(
+                0,
+                0,
+                40,
+                20,
+                fill=color,
+                outline=color
+            )
+
+        attack_info = self.state.get("attack_info")
+
+        if attack_info:
+
+            self.attacking_team_label.config(
+                text=f"Attacking Team : {attack_info['attacking_team']}"
+            )
+
+            self.defending_team_label.config(
+                text=f"Defending Team : {attack_info['defending_team']}"
+            )
 
     def load_video(self):
         path = filedialog.askopenfilename(
@@ -345,6 +443,8 @@ class OffsideApp:
         self._determine_left_right_teams()
         self.run_detection()
         self.show_step()
+        self.manual_last_defender_kp = None
+        self.selected_kp = None
 
     def delete_selected_roi(self):
 
@@ -565,6 +665,9 @@ class OffsideApp:
 
         if manual_direction is not None:
             attack_info["direction"] = manual_direction
+            attack_info = self._apply_mitemp_to_attack_info(
+                attack_info
+            )
 
         # first selected team = defending or swapped by mitemp
         self._apply_mitemp_to_attack_info(attack_info)
@@ -601,6 +704,9 @@ class OffsideApp:
 
         pipeline = self.get_pipeline()
         attack_info = self._apply_mitemp_to_attack_info(self.state["attack_info"])
+        attack_info = self._apply_mitemp_to_attack_info(
+            self.state["attack_info"]
+        )
         result = pipeline.offside_detector.compute_offside_status(
             detections,
             self.state["team_labels"],
@@ -702,6 +808,33 @@ class OffsideApp:
             return raw_direction in ("left", "right")
         return False
 
+    def _line_angle(self, line):
+
+        (x1, y1), (x2, y2) = line
+
+        return abs(
+            np.degrees(
+                np.arctan2(
+                    y2 - y1,
+                    x2 - x1
+                )
+            )
+        )
+
+
+    def _is_valid_vertical_line(self, line):
+
+        angle = self._line_angle(line)
+
+        return angle > 60
+
+
+    def _is_valid_horizontal_line(self, line):
+
+        angle = self._line_angle(line)
+
+        return angle < 30
+
     def next_step(self):
 
         # STEP 0 -> RUN DETECTION -> STEP 1
@@ -722,6 +855,7 @@ class OffsideApp:
                 ]
 
             if self.team_rois[0] is not None and self.team_rois[1] is not None:
+                self._determine_left_right_teams()
                 self.current_step = 3
             else:
                 self.current_step = 2
@@ -838,6 +972,11 @@ class OffsideApp:
         self.video_playing = False
         self.original_img = None
         self.show_video_rois = False
+        self.zoom_level = 1.0
+        self.zoom_center_x = None
+        self.zoom_center_y = None
+        self.zoom_crop_x1 = 0
+        self.zoom_crop_y1 = 0
         self.show_step()
 
     def display(self, img):
@@ -934,6 +1073,8 @@ class OffsideApp:
                 self.choose_frame_btn.pack(side="left", padx=5)
             if hasattr(self, "attack_direction_entry"):
                 self.attack_direction_entry.pack_forget()
+                self.mitemp_label.pack_forget()
+                self.mitemp_entry.pack_forget()
             if hasattr(self, "attack_dir_label"):
                 self.attack_dir_label.pack_forget()
             if hasattr(self, "mitemp_entry"):
@@ -988,6 +1129,7 @@ class OffsideApp:
                 2,
                 cv2.LINE_AA
             )
+            self.update_sidebar()
             self.display(frame)
             return
 
@@ -1099,6 +1241,7 @@ class OffsideApp:
                 2,
                 cv2.LINE_AA
             )
+            self.update_sidebar()
 
             self.display(img)
 
@@ -1460,6 +1603,8 @@ class OffsideApp:
 
         if hasattr(self, "attack_direction_entry"):
             self.attack_direction_entry.pack_forget()
+            self.mitemp_label.pack_forget()
+            self.mitemp_entry.pack_forget()
 
         if hasattr(self, "attack_dir_label"):
             self.attack_dir_label.pack_forget()
@@ -1480,10 +1625,21 @@ class OffsideApp:
         if self.current_step == 5:
             self.attack_dir_label.pack(side="left", padx=(15, 5), pady=12)
             self.attack_direction_entry.pack(side="left", padx=5)
+            self.mitemp_label.pack(
+                side="left",
+                padx=(15, 5),
+                pady=12
+            )
+
+            self.mitemp_entry.pack(
+                side="left",
+                padx=5
+            )
             if hasattr(self, "mitemp_label"):
                 self.mitemp_label.pack(side="left", padx=(15, 5), pady=12)
             if hasattr(self, "mitemp_entry"):
                 self.mitemp_entry.pack(side="left", padx=5)
+        self.update_sidebar()
 
         self.display(img)
 

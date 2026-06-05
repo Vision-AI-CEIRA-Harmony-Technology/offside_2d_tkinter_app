@@ -1,3 +1,4 @@
+from email import header
 import tkinter as tk
 from tkinter import ttk
 
@@ -11,12 +12,29 @@ def build_app_ui(root, app):
     except:
         root.attributes("-zoomed", True)
     root.configure(bg="#111827")
+    root.option_add("*TCombobox*Listbox.background", "#374151")
+    root.option_add("*TCombobox*Listbox.foreground", "white")
+    root.option_add("*TCombobox*Listbox.selectBackground", "#4B5563")
+    root.option_add("*TCombobox*Listbox.selectForeground", "white")
 
     # -----------------------------
     # STYLE
     # -----------------------------
     style = ttk.Style()
+    style.configure(
+        "SidebarToggle.TButton",
+        background="#111827",
+        foreground="white",
+        borderwidth=0,
+        relief="flat",
+        padding=0,
+        font=("Segoe UI", 14, "bold")
+    )
 
+    style.map(
+        "SidebarToggle.TButton",
+        background=[("active", "#1F2937")]
+    )
     style.theme_use("clam")
 
     style.configure(
@@ -90,6 +108,23 @@ def build_app_ui(root, app):
         fieldbackground=[("focus", "#4B5563")]
     )
 
+    style.configure(
+        "Dark.TCombobox",
+        fieldbackground="#374151",
+        background="#374151",
+        foreground="white",
+        arrowcolor="white",
+        borderwidth=1
+    )
+
+    style.map(
+        "Dark.TCombobox",
+        fieldbackground=[("readonly", "#374151")],
+        foreground=[("readonly", "white")],
+        selectbackground=[("readonly", "#4B5563")],
+        selectforeground=[("readonly", "white")]
+    )
+
     # -----------------------------
     # MAIN CONTAINER
     # -----------------------------
@@ -97,9 +132,124 @@ def build_app_ui(root, app):
     main.pack(fill="both", expand=True)
 
     # -----------------------------
+    # CONTENT LAYOUT
+    # -----------------------------
+    content = ttk.Frame(main, style="Dark.TFrame")
+    content.pack(fill="both", expand=True)
+    app.content_container = content
+    app.sidebar_handle = tk.Label(
+        main,
+        text=">>",
+        bg="#111827",
+        fg="white",
+        font=("Segoe UI", 14, "bold"),
+        cursor="hand2"
+    )
+    app.sidebar_handle.place(
+        x=10,
+        y=45
+    )
+
+    app.sidebar_handle.bind(
+        "<Button-1>",
+        lambda e: app.toggle_sidebar()
+    )
+    app.sidebar_handle.lift()
+    # Sidebar
+    app.sidebar = ttk.Frame(
+        content,
+        style="Toolbar.TFrame",
+        width=250
+    )
+
+    app.sidebar.pack(
+        side="left",
+        fill="y",
+        padx=(25, 5),
+        pady=(35, 10)
+    )
+    app.sidebar.pack_forget()
+    app.sidebar.pack_propagate(False)
+
+
+
+    # Main workspace
+    workspace = ttk.Frame(
+        content,
+        style="Dark.TFrame"
+    )
+    app.workspace = workspace
+    workspace.pack(
+        side="left",
+        fill="both",
+        expand=True
+    )
+
+    # ==================================================
+    # MATCH INFO SIDEBAR
+    # ==================================================
+
+    ttk.Label(
+        app.sidebar,
+        text="MATCH DATA",
+        style="Title.TLabel"
+    ).pack(pady=(15, 20))
+
+    app.left_team_label = ttk.Label(
+        app.sidebar,
+        text="Left Team : Not Set",
+        style="Dark.TLabel"
+    )
+    app.left_team_label.pack(anchor="w", padx=10, pady=5)
+
+    app.left_team_color = tk.Canvas(
+        app.sidebar,
+        width=40,
+        height=20,
+        highlightthickness=1
+    )
+    app.left_team_color.pack(anchor="w", padx=10)
+
+    app.right_team_label = ttk.Label(
+        app.sidebar,
+        text="Right Team : Not Set",
+        style="Dark.TLabel"
+    )
+    app.right_team_label.pack(anchor="w", padx=10, pady=(15, 5))
+
+    app.right_team_color = tk.Canvas(
+        app.sidebar,
+        width=40,
+        height=20,
+        highlightthickness=1
+    )
+    app.right_team_color.pack(anchor="w", padx=10)
+
+    app.half_label = ttk.Label(
+        app.sidebar,
+        text="Half : 1st",
+        style="Dark.TLabel"
+    )
+    app.half_label.pack(anchor="w", padx=10, pady=(20, 5))
+
+    app.attacking_team_label = ttk.Label(
+        app.sidebar,
+        text="Attacking Team : ?",
+        style="Dark.TLabel"
+    )
+    app.attacking_team_label.pack(anchor="w", padx=10, pady=5)
+
+    app.defending_team_label = ttk.Label(
+        app.sidebar,
+        text="Defending Team : ?",
+        style="Dark.TLabel"
+    )
+    app.defending_team_label.pack(anchor="w", padx=10, pady=5)
+
+    # -----------------------------
     # HEADER
     # -----------------------------
-    header = ttk.Frame(main, style="Dark.TFrame")
+    header = ttk.Frame(workspace, style="Dark.TFrame")
     header.pack(fill="x", padx=20, pady=(15, 5))
 
     ttk.Label(
@@ -111,7 +261,7 @@ def build_app_ui(root, app):
     # -----------------------------
     # TOOLBAR
     # -----------------------------
-    toolbar = ttk.Frame(main, style="Toolbar.TFrame")
+    toolbar = ttk.Frame(workspace, style="Toolbar.TFrame")
     toolbar.pack(fill="x", padx=20, pady=10)
 
     
@@ -149,7 +299,7 @@ def build_app_ui(root, app):
 
     app.next_frame_btn = ttk.Button(
         toolbar,
-        text="Frame ▶",
+        text="Frame >>",
         command=app.next_frame,
         style="Action.TButton"
     )
@@ -182,29 +332,74 @@ def build_app_ui(root, app):
         style="Action.TButton"
     )
 
-    app.attack_direction_var = tk.StringVar()
+    # app.add_keypoint_btn = ttk.Button(
+    #     toolbar,
+    #     text="Add keypoint",
+    #     command=app.toggle_add_keypoint_mode,
+    #     style="Action.TButton"
+    # )
+
+    # app.delete_keypoint_btn = ttk.Button(
+    #     toolbar,
+    #     text="Delete keypoint",
+    #     command=app.delete_selected_keypoint,
+    #     style="Action.TButton"
+    # )
+
+    app.attack_direction_var = tk.StringVar(value="Right")
     app.attack_dir_label = ttk.Label(
         toolbar,
         text="Attack Direction:",
         style="Dark.TLabel"
     )
-
-    app.attack_direction_entry = ttk.Entry(
+    app.attack_direction_entry = ttk.Combobox(
         toolbar,
         textvariable=app.attack_direction_var,
+        values=["Right", "Left"],
         width=8,
-        font=("Segoe UI", 10),
-        style="Dark.TEntry"
+        state="readonly"
+    )
+    app.mitemp_var = tk.StringVar(value="1")
+
+    app.mitemp_label = ttk.Label(
+        toolbar,
+        text="Mi-temps:",
+        style="Dark.TLabel"
     )
 
-    app.attack_direction_var.set("")
+    app.mitemp_entry = ttk.Combobox(
+        toolbar,
+        textvariable=app.mitemp_var,
+        values=["1", "2"],
+        state="readonly",
+        width=5,
+        style="Dark.TCombobox"
+    )
+
+    app.mitemp_entry.bind(
+        "<<ComboboxSelected>>",
+        lambda e: app.update_sidebar()
+    )
+
+    # attack_dir_label.pack(side="left", padx=(15, 5), pady=12)  #! dikra: moved to conditional in show_step
+
+    # app.attack_direction_entry = ttk.Entry(
+    #     toolbar,
+    #     textvariable=app.attack_direction_var,
+    #     width=8,
+    #     font=("Segoe UI", 10),
+    #     style="Dark.TEntry"
+    # )
+    # app.attack_direction_entry.pack(side="left", padx=(0, 15), pady=10)  #! dikra: moved to conditional in show_step
+
+    # app.attack_direction_var.set("")
 
 ################################
     # -----------------------------
     # CANVAS FRAME
     # -----------------------------
     canvas_frame = tk.Frame(
-        main,
+        workspace,
         bg="#0B1220",
         highlightthickness=2,
         highlightbackground="#374151"
@@ -229,7 +424,7 @@ def build_app_ui(root, app):
     # -----------------------------
     # BOTTOM NAVIGATION
     # -----------------------------
-    bottom = ttk.Frame(main, style="Dark.TFrame")
+    bottom = ttk.Frame(workspace, style="Dark.TFrame")
     bottom.pack(fill="x", padx=20, pady=15)
 
     # Configure grid so center column expands

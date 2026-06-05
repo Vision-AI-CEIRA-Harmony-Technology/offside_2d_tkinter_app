@@ -1,3 +1,5 @@
+from tkinter import messagebox
+
 import cv2
 from offside_logique.team_classifier import TeamClassifier
 from offside_logique.utils import GeometryUtils
@@ -768,9 +770,24 @@ def on_mouse_up(app, e):
         # finish new line
         if app.current_step == 3 and app.temp_vp_line is not None:
             if app.vp_line_start is not None and app.temp_vp_line is not None:
+                    if not app._is_valid_vertical_line(app.temp_vp_line):
+                        messagebox.showerror(
+                            "Invalid line",
+                            "Please draw a vertical pitch line."
+                        )
+
+                        return
                     app.manual_vp_lines.append(app.temp_vp_line)
+
         elif app.current_step == 4 and app.temp_vph_line is not None:
-            if app.vph_line_start is not None and app.temp_vph_line is not None:        
+            if app.vph_line_start is not None and app.temp_vph_line is not None:    
+                    if not app._is_valid_horizontal_line(app.temp_vph_line):
+                        messagebox.showerror(
+                            "Invalid line",
+                            "Please draw a horizontal pitch line."
+                        )
+
+                        return    
                     app.manual_vph_lines.append(app.temp_vph_line)
 
         if app.current_step == 3 and app.temp_vp_line is not None:
