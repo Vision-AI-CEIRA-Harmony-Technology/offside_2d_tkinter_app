@@ -741,9 +741,9 @@ class OffsideApp:
 
         # Only recompute offside after a frame has been chosen
         if self.original_img is not None:
-            # self.run_offside()
-            self.recompute_offside() #! dikra
+            self.run_offside()
 
+            
     def _determine_left_right_teams(self):
         """Determine which team ID is on left/right based on ROI center X positions."""
         if self.team_rois[0] is None or self.team_rois[1] is None:
