@@ -743,7 +743,7 @@ class OffsideApp:
         if self.original_img is not None:
             self.run_offside()
 
-            
+
     def _determine_left_right_teams(self):
         """Determine which team ID is on left/right based on ROI center X positions."""
         if self.team_rois[0] is None or self.team_rois[1] is None:
@@ -933,8 +933,8 @@ class OffsideApp:
                 self.state["attack_info"]["direction"] = raw_direction
 
             self._apply_mitemp_to_attack_info(self.state["attack_info"])
-            # self.recompute_offside()
-            self.run_offside()
+            self.recompute_offside()
+            # self.run_offside()
 
             self.current_step = 6
 
