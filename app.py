@@ -55,6 +55,7 @@ class OffsideApp:
             "attack_info": None,
         }
         self.current_step = 0
+        self.sidebar_visible = False
         self.selected_box = None
         self.drag_mode = None
         self.resize_corner = None
@@ -174,6 +175,103 @@ class OffsideApp:
         self.video_mode = False
         self.video_rois_locked_at_frame = None
         self.video_rois_locked_at_frame = None
+
+    def toggle_sidebar(self):
+
+        if self.sidebar_visible:
+
+            self.sidebar.pack_forget()
+
+            self.sidebar_handle.config(text=">>")
+
+            self.sidebar_visible = False
+
+        else:
+
+            self.sidebar.pack(
+                side="left",
+                fill="y",
+                padx=(15, 5),
+                pady=10,
+                before=self.workspace
+            )
+
+            self.sidebar_handle.config(text="<<")
+
+            self.sidebar_visible = True
+    def update_sidebar(self):
+        if not hasattr(self, "left_team_label"):
+            return
+        self.half_label.config(
+            text=f"Half : {self.mitemp_var.get()}"
+        )
+        # Left team
+        if self.left_team_id is not None:
+            self.left_team_label.config(
+                text=f"Left Team : Team {self.left_team_id}"
+            )
+
+        # Right team
+        if self.right_team_id is not None:
+            self.right_team_label.config(
+                text=f"Right Team : Team {self.right_team_id}"
+            )
+
+        # Team 0 color
+        c0 = self.state.get("team_color_0")
+
+        if c0 is not None:
+
+            color = "#{:02x}{:02x}{:02x}".format(
+                int(c0[2]),
+                int(c0[1]),
+                int(c0[0])
+            )
+
+            self.left_team_color.delete("all")
+
+            self.left_team_color.create_rectangle(
+                0,
+                0,
+                40,
+                20,
+                fill=color,
+                outline=color
+            )
+
+        # Team 1 color
+        c1 = self.state.get("team_color_1")
+
+        if c1 is not None:
+
+            color = "#{:02x}{:02x}{:02x}".format(
+                int(c1[2]),
+                int(c1[1]),
+                int(c1[0])
+            )
+
+            self.right_team_color.delete("all")
+
+            self.right_team_color.create_rectangle(
+                0,
+                0,
+                40,
+                20,
+                fill=color,
+                outline=color
+            )
+
+        attack_info = self.state.get("attack_info")
+
+        if attack_info:
+
+            self.attacking_team_label.config(
+                text=f"Attacking Team : {attack_info['attacking_team']}"
+            )
+
+            self.defending_team_label.config(
+                text=f"Defending Team : {attack_info['defending_team']}"
+            )
 
     def load_video(self):
         path = filedialog.askopenfilename(
@@ -1026,6 +1124,7 @@ class OffsideApp:
                 2,
                 cv2.LINE_AA
             )
+            self.update_sidebar()
             self.display(frame)
             return
 
@@ -1137,6 +1236,7 @@ class OffsideApp:
                 2,
                 cv2.LINE_AA
             )
+            self.update_sidebar()
 
             self.display(img)
 
@@ -1534,6 +1634,7 @@ class OffsideApp:
                 self.mitemp_label.pack(side="left", padx=(15, 5), pady=12)
             if hasattr(self, "mitemp_entry"):
                 self.mitemp_entry.pack(side="left", padx=5)
+        self.update_sidebar()
 
         self.display(img)
 
