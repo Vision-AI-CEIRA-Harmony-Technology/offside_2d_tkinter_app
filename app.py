@@ -66,11 +66,11 @@ class OffsideApp:
         self.display_scale = 1.0
         self.offset_x = 0
         self.offset_y = 0
-        self.line_thickness = 2
+        self.line_thickness = 1
         self.text_scale = 0.55
         self.text_thickness = 2
-        self.handle_radius = 5
-        self.point_radius = 4
+        self.handle_radius = 2
+        self.point_radius = 2
 
         # Bind the canvas event handlers from helper utilities
         self.on_mouse_down = lambda e: on_mouse_down(self, e)
@@ -162,6 +162,7 @@ class OffsideApp:
         self.selected_kp = None
         self.dragging_kp = False
         self.manual_last_defender_kp = None
+        self.manual_last_defender_proj = None
         # -----------------------------
         # VIDEO STATE
         # -----------------------------
@@ -550,7 +551,7 @@ class OffsideApp:
         self.selected_kp = None
         self.dragging_kp = False
         self.manual_last_defender_kp = None
-        self.manual_last_defender_kp = None
+        self.manual_last_defender_proj = None
 
         # Manual VPvertical line editing
         self.manual_vp_lines = []
@@ -682,7 +683,9 @@ class OffsideApp:
             self.state["vp"],
             self.state["vph"],
             self.original_img.shape[:2],
-            manual_last_defender_kp=self.manual_last_defender_kp
+            manual_last_defender_kp=self.manual_last_defender_kp,
+            manual_last_defender_proj=self.manual_last_defender_proj,
+            
         )
 
         # -----------------------------
@@ -697,7 +700,6 @@ class OffsideApp:
         self.video_team_centers[1] = c1
 
     def recompute_offside(self):
-
         detections = self.state["detections"]
 
         pipeline = self.get_pipeline()
@@ -712,7 +714,8 @@ class OffsideApp:
             self.state["vp"],
             self.state["vph"],
             self.original_img.shape[:2],
-            manual_last_defender_kp=self.manual_last_defender_kp
+            manual_last_defender_kp=self.manual_last_defender_kp,
+            manual_last_defender_proj=self.manual_last_defender_proj
         )
 
         self.state["offside"] = result
@@ -738,7 +741,8 @@ class OffsideApp:
 
         # Only recompute offside after a frame has been chosen
         if self.original_img is not None:
-            self.run_offside()
+            # self.run_offside()
+            self.recompute_offside() #! dikra
 
     def _determine_left_right_teams(self):
         """Determine which team ID is on left/right based on ROI center X positions."""
@@ -929,7 +933,8 @@ class OffsideApp:
                 self.state["attack_info"]["direction"] = raw_direction
 
             self._apply_mitemp_to_attack_info(self.state["attack_info"])
-            self.recompute_offside()
+            # self.recompute_offside()
+            self.run_offside()
 
             self.current_step = 6
 
@@ -1265,10 +1270,10 @@ class OffsideApp:
         )
 
         # reusable drawing sizes
-        self.line_thickness = max(1, int(2 * self.ui_scale))
+        self.line_thickness = max(1, int(0.3 * self.ui_scale))
         self.small_thickness = max(1, int(1 * self.ui_scale))
-        self.handle_radius = max(2, int(5 * self.ui_scale))
-        self.point_radius = max(1, int(4 * self.ui_scale))
+        self.handle_radius = max(2, int(1.5 * self.ui_scale))
+        self.point_radius = max(1, int(1.5 * self.ui_scale))
         self.text_scale = max(0.35, 0.55 * self.ui_scale)
         self.text_thickness = max(1, int(2 * self.ui_scale))
         if self.current_step == 1:
@@ -1638,7 +1643,6 @@ class OffsideApp:
 
         self.display(img)
 
-
     def delete_selected_box(self):
 
         if self.selected_box is None:
@@ -1650,6 +1654,7 @@ class OffsideApp:
 
         self.show_step()
 
+    #TODO: no backend logic for deleting kpts, to be removed
     def delete_selected_keypoint(self):
 
         if self.selected_kp is None:

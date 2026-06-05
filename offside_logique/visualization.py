@@ -46,12 +46,12 @@ class KeypointVisualizer:
             3.0
         )
 
-        line_thickness = max(1, int(0.5 * ui_scale))
-        point_radius = max(1, int(2 * ui_scale))
+        line_thickness = max(1, int(0.3 * ui_scale))
+        point_radius = max(1, int(1.5 * ui_scale))
         big_point_radius = min(5, int(3 * ui_scale))
 
-        dash_length = max(6, int(12 * ui_scale))
-        gap_length = max(4, int(8 * ui_scale))
+        dash_length = max(6, int(6 * ui_scale))
+        gap_length = max(4, int(4 * ui_scale))
 
         text_scale = max(0.35, 0.55 * ui_scale)
         text_thickness = max(1, int(1.2 * ui_scale))
@@ -391,9 +391,20 @@ class OverlayRenderer:
         """
         out = frame.copy()
         H, W = out.shape[:2]
+        
+        ref_diag = (1280**2 + 720**2) ** 0.5
+        img_diag = (W**2 + H**2) ** 0.5
+        ui_scale = np.clip(
+            img_diag / ref_diag,
+            0.18,
+            3.0
+        )
+        
         c0 = ColorUtils.bgr_to_display(team_colors[0])
         c1 = ColorUtils.bgr_to_display(team_colors[1])
         team_display_colors = [c0, c1]
+        line_thickness = max(1, int(0.3 * ui_scale))
+        point_radius = max(1, int(1.5 * ui_scale))
 
         closest_onside_attacker = None
         if vanishing_point is not None and offside_line is not None:
@@ -436,12 +447,12 @@ class OverlayRenderer:
                 color = ONSIDE_COLOR
             else:
                 color = team_display_colors[lbl] if lbl >= 0 else (180, 180, 180)
-            cv2.rectangle(out, (x1, y1), (x2, y2), color, 2)
+            cv2.rectangle(out, (x1, y1), (x2, y2), color, line_thickness)
             for kp_name, (kx, ky) in det["keypoints"].items():
-                cv2.circle(out, (int(kx), int(ky)), 1, KEYPOINT_COLOR, -1)
+                cv2.circle(out, (int(kx), int(ky)), point_radius, KEYPOINT_COLOR, -1)
             if judgement == "OFFSIDE" and det.get("offside_keypoint") is not None:
                 okx, oky = det["offside_keypoint"]
-                cv2.circle(out, (int(okx), int(oky)), 1, OFFSIDE_COLOR, -1)
+                cv2.circle(out, (int(okx), int(oky)), point_radius, OFFSIDE_COLOR, -1)
         return out
 
 
