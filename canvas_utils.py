@@ -434,6 +434,7 @@ def on_mouse_drag(app, e):
         if kp_type == "attacker":
             attacking_team = app.state["attack_info"]["attacking_team"]
             in_attacker_bbox = False
+            #! can we do it better than a loop ?
             for i, det in enumerate(app.state["detections"]):
                 if app.state["team_labels"][i] != attacking_team:
                     continue  # skip defenders
@@ -447,17 +448,19 @@ def on_mouse_drag(app, e):
                 return
             
             target_det = app.state["detections"][idx]
-            target_det["manual_offside_kp"] = (x, y)
-            target_det["offside_keypoint"] = (x, y)
-            print("recomputing offside")
+            app.state["detections"][idx]["manual_offside_kp"] = (x, y)
+            app.state["detections"][idx]["offside_keypoint"] = (x, y)
+            # reset this attacker's manual proj point
+            app.state["detections"][idx]["manual_offside_proj"] = None
             app.recompute_offside()
 
         elif kp_type == "attacker_projected":
             target_det = app.state["detections"][idx]
             orig_projection = target_det.get("offside_proj_point")
-            fixed_x = orig_projection[0] if orig_projection is not None else x
-            target_det["offside_proj_point"] = (fixed_x, y)
-            target_det["manual_offside_proj"] = (fixed_x, y) 
+            fixed_x = int(orig_projection[0]) if orig_projection is not None else x
+            app.state["detections"][idx]["offside_proj_point"] = (fixed_x, y)
+            app.state["detections"][idx]["manual_offside_proj"] = (fixed_x, y) #! 
+            app.recompute_offside()
 
             # result = app.state.get("offside")
             # if result is not None:
@@ -479,7 +482,6 @@ def on_mouse_drag(app, e):
             #                 x_axis,
             #                 judgements,
             #             )
-            # app.recompute_offside()
             
 
         elif kp_type == "defender":
@@ -507,8 +509,10 @@ def on_mouse_drag(app, e):
             result = app.state.get("offside")
             if result is not None:
                 offside_line, ground_line, all_def_lines, last_kp, projected_point, projection_points, x_axis, judgements = result
-                fixed_x = projected_point[0] if projected_point is not None else x
+                fixed_x = int(projected_point[0]) if projected_point is not None else x
                 new_projected = (fixed_x, y)
+                app.manual_last_defender_proj = (fixed_x, y)
+                print("SETTING MANUAL PROJ POINT FOR THE FIRST TIME", app.manual_last_defender_proj)
                 vp = app.state.get("vp")
                 if vp is not None:
                     H, W = app.original_img.shape[:2]
@@ -525,8 +529,6 @@ def on_mouse_drag(app, e):
                         judgements,
                     )
 
-            app.manual_last_defender_proj = (fixed_x, y)
-            print("SETTING MANUAL PROJ POINT FOR THE FIRST TIME", app.manual_last_defender_proj)
             app.recompute_offside()
 
         app.show_step()

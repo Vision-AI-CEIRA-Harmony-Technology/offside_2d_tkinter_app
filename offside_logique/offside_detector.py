@@ -314,15 +314,15 @@ class OffsideLineComputer:
                     proj_bbox = other_det["bbox"]
 
                     break
+            
+            # bottom of bbox
+            _, _, _, proj_y2 = proj_bbox
+            # horizontal projected ground point
+            projected_point = (kx, proj_y2)
 
-            if manual_last_defender_proj is not None:
-                print("in compute_offside_line, using manual proj point", manual_last_defender_proj)
-                projected_point = manual_last_defender_proj
-            else:
-                # bottom of bbox
-                _, _, _, proj_y2 = proj_bbox
-                # horizontal projected ground point
-                projected_point = (kx, proj_y2)
+        if manual_last_defender_proj is not None:
+            print("in compute_offside_line, using manual proj point", manual_last_defender_proj)
+            projected_point = manual_last_defender_proj
     
 
 
@@ -476,13 +476,12 @@ class OffsideJudge:
                 #* support multiple offsiders: this is useless now?
                 # break
 
-        # print(len(detections), len(team_labels), "Starting judgement loop")
         for i, (det, lbl) in enumerate(zip(detections, team_labels)):
             if lbl != attacking_team:
                 continue
 
             manual_kp = det.get("manual_offside_kp")
-            # print("manual keypiont", manual_kp, lbl, i, manual_attacker_idx)
+            manual_proj = det.get("manual_offside_proj")
 
             # Use manual keypoint if available
             if manual_kp is not None:
@@ -497,9 +496,12 @@ class OffsideJudge:
                     if bx1 <= kx <= bx2 and by1 <= ky <= by2:
                         proj_bbox = other_det["bbox"]
                         break
-                    
-                _, _, _, proj_y2 = proj_bbox
-                projected_point = (kx, proj_y2)
+                
+                if manual_proj is not None:
+                    projected_point = manual_proj
+                else:
+                    _, _, _, proj_y2 = proj_bbox
+                    projected_point = (kx, proj_y2)
 
                 depth_metric = OffsideLineComputer.compute_depth_metric(
                     projected_point[0],
@@ -555,6 +557,55 @@ class OffsideJudge:
                         else:
                             is_offside = depth_metric > offside_metric
                 judgements[i] = "OFFSIDE" if is_offside else "ONSIDE"
+
+            elif manual_proj is not None:
+                projected_point = manual_proj
+                depth_metric = OffsideLineComputer.compute_depth_metric(
+                    projected_point[0],
+                    projected_point[1],
+                    vp,
+                    W
+                )
+
+                det["offside_proj_point"] = projected_point
+                det["manual_offside_proj"] = projected_point
+
+                attack_direction = attack_info["direction"]
+
+                # --------------------------------------------------
+                # VP INSIDE IMAGE
+                # --------------------------------------------------
+
+                if 0 <= vx <= W:
+
+                    if attack_direction == "right":
+                        is_offside = depth_metric > offside_metric
+                    else:
+                        is_offside = depth_metric < offside_metric
+
+                # --------------------------------------------------
+                # VP OUTSIDE IMAGE
+                # --------------------------------------------------
+
+                else:
+
+                    vp_is_right = vx > W / 2
+
+                    if attack_direction == "right":
+
+                        if vp_is_right:
+                            is_offside = depth_metric > offside_metric
+                        else:
+                            is_offside = depth_metric < offside_metric
+
+                    else:
+
+                        if vp_is_right:
+                            is_offside = depth_metric < offside_metric
+                        else:
+                            is_offside = depth_metric > offside_metric
+                judgements[i] = "OFFSIDE" if is_offside else "ONSIDE"
+                
 
             else:
                 # Normal keypoint logic (unchanged)
