@@ -597,7 +597,6 @@ class OffsideApp:
         self.video_team_centers[1] = c1
 
     def recompute_offside(self):
-        print("RECOMPUTE HAPPENED")
         detections = self.state["detections"]
 
         pipeline = self.get_pipeline()

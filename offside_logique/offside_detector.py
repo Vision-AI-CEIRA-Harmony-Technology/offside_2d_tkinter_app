@@ -321,7 +321,6 @@ class OffsideLineComputer:
             projected_point = (kx, proj_y2)
 
         if manual_last_defender_proj is not None:
-            print("in compute_offside_line, using manual proj point", manual_last_defender_proj)
             projected_point = manual_last_defender_proj
     
 

@@ -224,7 +224,6 @@ def on_mouse_down(app, e):
         hit = detect_keypoint_hit(app, x, y)
 
         if hit is not None:
-            print("setting hit in mouse down", hit)
             app.selected_kp = hit
             app.dragging_kp = True
 
@@ -309,7 +308,6 @@ def on_mouse_down(app, e):
 
 def on_mouse_drag(app, e):
     x, y = canvas_to_image(app, e.x, e.y)
-    print("new position in mouse drag", x, y)
     # -----------------------------
     # STEP 3 : DRAW VP LINE
     # -----------------------------
@@ -429,7 +427,6 @@ def on_mouse_drag(app, e):
     if app.current_step == 6 and app.dragging_kp:
 
         kp_type, idx = app.selected_kp
-        print("hit in in mouse drag", kp_type, idx)
 
         if kp_type == "attacker":
             attacking_team = app.state["attack_info"]["attacking_team"]
@@ -465,11 +462,9 @@ def on_mouse_drag(app, e):
             # result = app.state.get("offside")
             # if result is not None:
             #     offside_line, ground_line, all_def_lines, last_kp, projected_point, projection_points, x_axis, judgements = result
-            #     print(judgements)
             #     if not any(j == "OFFSIDE" for j in judgements):
             #         vp = app.state.get("vp")
             #         if vp is not None:
-            #             print("CREATING NEW OFFSIDE LINE")
             #             H, W = app.original_img.shape[:2]
             #             new_offside_line = GeometryUtils.extend_line_to_frame(vp, (x, y), W, H)
             #             app.state["offside"] = (
@@ -512,7 +507,6 @@ def on_mouse_drag(app, e):
                 fixed_x = int(projected_point[0]) if projected_point is not None else x
                 new_projected = (fixed_x, y)
                 app.manual_last_defender_proj = (fixed_x, y)
-                print("SETTING MANUAL PROJ POINT FOR THE FIRST TIME", app.manual_last_defender_proj)
                 vp = app.state.get("vp")
                 if vp is not None:
                     H, W = app.original_img.shape[:2]
@@ -623,9 +617,6 @@ def on_mouse_drag(app, e):
         set_box(app, app.selected_box, new_box)
         app.start_x, app.start_y = x, y
 
-        # print("mouse image:", x, y)
-        # print("roi:", get_roi(app, app.selected_roi))
-        # print("scale:", app.display_scale)
     elif app.drag_mode == "resize" and app.selected_box is not None:
         x1, y1, x2, y2 = get_box(app, app.selected_box)
         # top-left
@@ -682,7 +673,6 @@ def on_mouse_drag(app, e):
 def detect_keypoint_hit(app, x, y, radius=10):
     """Detect if mouse clicked on an editable keypoint (attacker or defender)."""
     # ATTACKER OFFSIDE KEYPOINTS
-    print(len(app.state["detections"]), "checking keypoints for hit detection")
     for i, det in enumerate(app.state["detections"]):
         kp = det.get("offside_keypoint")
         if kp is None:
