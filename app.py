@@ -55,6 +55,7 @@ class OffsideApp:
             "attack_info": None,
         }
         self.current_step = 0
+        self.sidebar_visible = False
         self.selected_box = None
         self.drag_mode = None
         self.resize_corner = None
@@ -65,11 +66,11 @@ class OffsideApp:
         self.display_scale = 1.0
         self.offset_x = 0
         self.offset_y = 0
-        self.line_thickness = 2
+        self.line_thickness = 1
         self.text_scale = 0.55
         self.text_thickness = 2
-        self.handle_radius = 5
-        self.point_radius = 4
+        self.handle_radius = 2
+        self.point_radius = 2
 
         # Bind the canvas event handlers from helper utilities
         self.on_mouse_down = lambda e: on_mouse_down(self, e)
@@ -161,6 +162,7 @@ class OffsideApp:
         self.selected_kp = None
         self.dragging_kp = False
         self.manual_last_defender_kp = None
+        self.manual_last_defender_proj = None
         # -----------------------------
         # VIDEO STATE
         # -----------------------------
@@ -199,6 +201,102 @@ class OffsideApp:
         self.root.update()
 
 
+    def toggle_sidebar(self):
+
+        if self.sidebar_visible:
+
+            self.sidebar.pack_forget()
+
+            self.sidebar_handle.config(text=">>")
+
+            self.sidebar_visible = False
+
+        else:
+
+            self.sidebar.pack(
+                side="left",
+                fill="y",
+                padx=(15, 5),
+                pady=10,
+                before=self.workspace
+            )
+
+            self.sidebar_handle.config(text="<<")
+
+            self.sidebar_visible = True
+    def update_sidebar(self):
+        if not hasattr(self, "left_team_label"):
+            return
+        self.half_label.config(
+            text=f"Half : {self.mitemp_var.get()}"
+        )
+        # Left team
+        if self.left_team_id is not None:
+            self.left_team_label.config(
+                text=f"Left Team : Team {self.left_team_id}"
+            )
+
+        # Right team
+        if self.right_team_id is not None:
+            self.right_team_label.config(
+                text=f"Right Team : Team {self.right_team_id}"
+            )
+
+        # Team 0 color
+        c0 = self.state.get("team_color_0")
+
+        if c0 is not None:
+
+            color = "#{:02x}{:02x}{:02x}".format(
+                int(c0[2]),
+                int(c0[1]),
+                int(c0[0])
+            )
+
+            self.left_team_color.delete("all")
+
+            self.left_team_color.create_rectangle(
+                0,
+                0,
+                40,
+                20,
+                fill=color,
+                outline=color
+            )
+
+        # Team 1 color
+        c1 = self.state.get("team_color_1")
+
+        if c1 is not None:
+
+            color = "#{:02x}{:02x}{:02x}".format(
+                int(c1[2]),
+                int(c1[1]),
+                int(c1[0])
+            )
+
+            self.right_team_color.delete("all")
+
+            self.right_team_color.create_rectangle(
+                0,
+                0,
+                40,
+                20,
+                fill=color,
+                outline=color
+            )
+
+        attack_info = self.state.get("attack_info")
+
+        if attack_info:
+
+            self.attacking_team_label.config(
+                text=f"Attacking Team : {attack_info['attacking_team']}"
+            )
+
+            self.defending_team_label.config(
+                text=f"Defending Team : {attack_info['defending_team']}"
+            )
 
     def load_video(self):
         path = filedialog.askopenfilename(
@@ -477,7 +575,7 @@ class OffsideApp:
         self.selected_kp = None
         self.dragging_kp = False
         self.manual_last_defender_kp = None
-        self.manual_last_defender_kp = None
+        self.manual_last_defender_proj = None
 
         # Manual VPvertical line editing
         self.manual_vp_lines = []
@@ -614,7 +712,9 @@ class OffsideApp:
             self.state["vp"],
             self.state["vph"],
             self.original_img.shape[:2],
-            manual_last_defender_kp=self.manual_last_defender_kp
+            manual_last_defender_kp=self.manual_last_defender_kp,
+            manual_last_defender_proj=self.manual_last_defender_proj,
+            
         )
 
         # -----------------------------
@@ -629,7 +729,6 @@ class OffsideApp:
         self.video_team_centers[1] = c1
 
     def recompute_offside(self):
-
         detections = self.state["detections"]
 
         pipeline = self.get_pipeline()
@@ -644,7 +743,8 @@ class OffsideApp:
             self.state["vp"],
             self.state["vph"],
             self.original_img.shape[:2],
-            manual_last_defender_kp=self.manual_last_defender_kp
+            manual_last_defender_kp=self.manual_last_defender_kp,
+            manual_last_defender_proj=self.manual_last_defender_proj
         )
 
         self.state["offside"] = result
@@ -671,6 +771,7 @@ class OffsideApp:
         # Only recompute offside after a frame has been chosen
         if self.original_img is not None:
             self.run_offside()
+
 
     def _determine_left_right_teams(self):
         """Determine which team ID is on left/right based on ROI center X positions."""
@@ -862,6 +963,7 @@ class OffsideApp:
 
             self._apply_mitemp_to_attack_info(self.state["attack_info"])
             self.recompute_offside()
+            # self.run_offside()
 
             self.current_step = 6
 
@@ -1056,6 +1158,7 @@ class OffsideApp:
                 2,
                 cv2.LINE_AA
             )
+            self.update_sidebar()
             self.display(frame)
             return
 
@@ -1167,6 +1270,7 @@ class OffsideApp:
                 2,
                 cv2.LINE_AA
             )
+            self.update_sidebar()
 
             self.display(img)
 
@@ -1195,10 +1299,10 @@ class OffsideApp:
         )
 
         # reusable drawing sizes
-        self.line_thickness = max(1, int(2 * self.ui_scale))
+        self.line_thickness = max(1, int(0.3 * self.ui_scale))
         self.small_thickness = max(1, int(1 * self.ui_scale))
-        self.handle_radius = max(2, int(5 * self.ui_scale))
-        self.point_radius = max(1, int(4 * self.ui_scale))
+        self.handle_radius = max(2, int(1.5 * self.ui_scale))
+        self.point_radius = max(1, int(1.5 * self.ui_scale))
         self.text_scale = max(0.35, 0.55 * self.ui_scale)
         self.text_thickness = max(1, int(2 * self.ui_scale))
         if self.current_step == 1:
@@ -1564,9 +1668,9 @@ class OffsideApp:
                 self.mitemp_label.pack(side="left", padx=(15, 5), pady=12)
             if hasattr(self, "mitemp_entry"):
                 self.mitemp_entry.pack(side="left", padx=5)
+        self.update_sidebar()
 
         self.display(img)
-
 
     def delete_selected_box(self):
 
@@ -1579,6 +1683,7 @@ class OffsideApp:
 
         self.show_step()
 
+    #TODO: no backend logic for deleting kpts, to be removed
     def delete_selected_keypoint(self):
 
         if self.selected_kp is None:
