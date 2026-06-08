@@ -317,6 +317,16 @@ def build_app_ui(root, app):
     )
     app.step_label.grid(row=0, column=1)
 
+    #khadija code: init load state label
+    app.status_label = ttk.Label(
+        bottom,
+        text="",
+        style="Dark.TLabel",
+        anchor="center"
+    )
+    app.status_label.grid(row=1, column=1)
+
+
     next_btn = ttk.Button(
         bottom,
         text="Next ▶",

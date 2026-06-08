@@ -59,7 +59,6 @@ class KeypointVisualizer:
         # =========================================================
         # ATTACKERS
         # =========================================================
-
         for det_idx, det in enumerate(detections):
 
             judgement = None
@@ -72,18 +71,20 @@ class KeypointVisualizer:
 
             if det.get("offside_keypoint") is None:
                 continue
-
+            
+            if "bbox" in det:
+                x1, y1, x2, y2 = det["bbox"]
+                bmx = int((x1 + x2) / 2)
+                bmy = int(y1)
+            
             okx, oky = det["offside_keypoint"]
             color = OFFSIDE_COLOR if judgement == "OFFSIDE" else ONSIDE_COLOR
-            #label = "Potential Offside" if judgement == "OFFSIDE" else "Closest Attacker"
 
             if judgement == "OFFSIDE":
-                label = ""
-                cv2.fillPoly(out, [np.array([[int(okx) - 15, int(oky) - 45],[int(okx) - 5,  int(oky) - 45],[int(okx) - 10, int(oky) - 35]])], OFFSIDE_COLOR)
+                cv2.fillPoly(out, [np.array([[int(bmx) - 8, int(bmy) - 12],[int(bmx) + 8, int(bmy) - 12],[int(bmx), int(bmy) - 2]])], OFFSIDE_COLOR)
             else:
-                label = ""
-                cv2.fillPoly(out, [np.array([[int(okx) - 15, int(oky) - 45],[int(okx) - 5,  int(oky) - 45],[int(okx) - 10, int(oky) - 35]])], ONSIDE_COLOR)
-
+                cv2.fillPoly(out, [np.array([[int(bmx) - 8, int(bmy) - 12],[int(bmx) + 8, int(bmy) - 12],[int(bmx), int(bmy) - 2]])], ONSIDE_COLOR)
+            
             # keypoint
             cv2.circle(
                 out,
@@ -101,19 +102,7 @@ class KeypointVisualizer:
             #     color,
             #     -1
             # )
-            """
-            #No text lastDef
-            # label
-            cv2.putText(
-                out,
-                label,
-                (int(okx) + 3, int(oky) - 35),
-                cv2.FONT_HERSHEY_SIMPLEX,
-                text_scale,
-                color,
-                text_thickness
-            )
-            """
+
             proj = det.get("offside_proj_point")
 
             if proj is None:
@@ -249,27 +238,23 @@ class KeypointVisualizer:
             #     LAST_DEF_KEYPOINT_COLOR,
             #     -1
             # )
-            
-            
-            cv2.fillPoly(out, [np.array([
-                [int(lx + 5) - 5, int(ly - 35) - 5],  # Vertex 1
-                [int(lx + 5) + 5, int(ly - 35) - 5],  # Vertex 2
-                [int(lx + 5),     int(ly - 35) + 5]   # Vertex 3
-            ])], LAST_DEF_KEYPOINT_COLOR)
+
+            # Find which player in our detections matches the last defender's tracking point
+            for det in detections:
+                if "bbox" in det:
+                    x1, y1, x2, y2 = det["bbox"]
+                    
+                    if x1 <= last_kp[0] <= x2 and y1 <= last_kp[1] <= y2:
+                        lmx = int((x1 + x2) / 2)
+                        lmy = int(y1)
+
+                        cv2.fillPoly(out, [np.array([
+                            [lmx - 8, lmy - 12],  
+                            [lmx + 8, lmy - 12],  
+                            [lmx,     lmy - 2]    
+                        ])], LAST_DEF_KEYPOINT_COLOR)
+                        break
                         
-            
-            """
-            #No text lastDef
-            cv2.putText(
-                out,
-                "Last Def",
-                (lx + 5, ly - 35),
-                cv2.FONT_HERSHEY_SIMPLEX,
-                text_scale,
-                LAST_DEF_KEYPOINT_COLOR,
-                text_thickness
-            )
-            """
         if last_kp is not None and projected_point is not None:
 
             px, py = int(projected_point[0]), int(projected_point[1])
