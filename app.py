@@ -177,6 +177,30 @@ class OffsideApp:
         self.video_rois_locked_at_frame = None
         self.video_rois_locked_at_frame = None
 
+
+    #khadija code load cursor
+    def set_busy(self, message="Processing..."):
+        print("BUSY")
+        self.root.config(cursor="circle")
+        #self.root.config(cursor="watch")
+        self.canvas.config(cursor="circle")
+
+        if hasattr(self, "status_label"):
+            self.status_label.config(text=message)
+
+        self.root.update()
+
+    def set_normal(self):
+        print("NORMAL")
+        self.root.config(cursor="")
+        self.canvas.config(cursor="")
+
+        if hasattr(self, "status_label"):
+            self.status_label.config(text="")
+
+        self.root.update()
+
+
     def toggle_sidebar(self):
 
         if self.sidebar_visible:
@@ -591,16 +615,21 @@ class OffsideApp:
         threading.Thread(target=self._run_detection, daemon=True).start()
 
     def _run_detection(self):
-        if self.original_img is None:
-            return
-        pipeline = self.get_pipeline()
-        result = pipeline.process_frame(self.original_img)
-        self.state["detections"] = result["detections"]
-        self.state["vp"] = result["vanishing_point"]
-        self.state["vph"] = result["vanishing_point_horiz"]
-        self.state["pitch_mask"] = result["pitch_mask"]
-        self.current_step = 1
-        self.root.after(0, self.show_step)
+        try:
+            #khadija code
+            self.root.after(0, lambda: self.set_busy("Running full detection pipeline..."))
+            if self.original_img is None:
+                return
+            pipeline = self.get_pipeline()
+            result = pipeline.process_frame(self.original_img)
+            self.state["detections"] = result["detections"]
+            self.state["vp"] = result["vanishing_point"]
+            self.state["vph"] = result["vanishing_point_horiz"]
+            self.state["pitch_mask"] = result["pitch_mask"]
+            self.current_step = 1
+            self.root.after(0, self.show_step)
+        finally:
+            self.root.after(0, self.set_normal)
 
     def run_pose_from_boxes(self):
         boxes = get_all_boxes(self)
