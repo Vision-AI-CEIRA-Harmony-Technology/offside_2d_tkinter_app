@@ -112,6 +112,7 @@ class OffsideDetectionPipeline:
             if def_xs:
                 def_median = np.median(def_xs)
                 attack_info["direction"] = "left" if def_median < W / 2 else "right"
+        #! this the entire pipeline in step 0, do we want this behaviour ?
         result = self.offside_detector.compute_offside_status(
             detections, team_labels, attack_info, vpv, vph, (H, W)
         )

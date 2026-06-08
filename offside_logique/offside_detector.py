@@ -190,6 +190,8 @@ class OffsideLineComputer:
 
         return defender_candidates
 
+   
+    
     @staticmethod
     def compute_offside_line(
         vanishing_point,
@@ -221,6 +223,7 @@ class OffsideLineComputer:
         H, W = frame_shape[:2]
 
         vp = vanishing_point
+        vph = vanishig_point_horiz
 
         defender_candidates = (
             OffsideLineComputer.collect_defender_keypoints(
@@ -291,13 +294,7 @@ class OffsideLineComputer:
 
         kx, ky, last_det_idx  = last_kp[0], last_kp[1], last_kp[-1]
 
-        # default bbox
-        # TODO: replace by lowest foot keypoint when available, otherwise fallback on bbox
-        proj_bbox = detections[last_det_idx]["bbox"]
-        # bottom of bbox
-        _, _, _, proj_y2 = proj_bbox
-        # horizontal projected ground point
-        projected_point = (kx, proj_y2)
+        projected_point = KeypointUtils.project_keypoint_to_ground(detections[last_det_idx], vph, (kx, ky)) 
 
         # if manually dragged kp -> find matching bbox
         if manual_last_defender_kp is not None:
@@ -311,15 +308,12 @@ class OffsideLineComputer:
 
                 if bx1 <= kx <= bx2 and by1 <= ky <= by2:
 
-                    proj_bbox = other_det["bbox"]
+                    # proj_bbox = other_det["bbox"]
+
+                    projected_point = KeypointUtils.project_keypoint_to_ground(other_det, vph, (kx, ky)) 
 
                     break
             
-            # bottom of bbox
-            _, _, _, proj_y2 = proj_bbox
-            # horizontal projected ground point
-            projected_point = (kx, proj_y2)
-
         if manual_last_defender_proj is not None:
             projected_point = manual_last_defender_proj
     
@@ -328,7 +322,6 @@ class OffsideLineComputer:
         # -------------------------------------------------
         # OFFSIDE LINE NOW USES PROJECTED POINT
         # -------------------------------------------------
-
         offside_line = GeometryUtils.extend_line_to_frame(
             vp,
             projected_point,
@@ -486,21 +479,19 @@ class OffsideJudge:
             if manual_kp is not None:
                 kx, ky = manual_kp
 
+                #! to be optimised, loops even if not needed
                 # Find correct bbox for projection (important when switching players)
-                proj_bbox = det["bbox"]
                 for other_det, other_lbl in zip(detections, team_labels):
                     if other_lbl != attacking_team:
                         continue
                     bx1, by1, bx2, by2 = other_det["bbox"]
                     if bx1 <= kx <= bx2 and by1 <= ky <= by2:
-                        proj_bbox = other_det["bbox"]
+                        # proj_bbox = other_det["bbox"]
+                        projected_point = KeypointUtils.project_keypoint_to_ground(other_det, vanishing_point_horiz, manual_kp)
                         break
                 
                 if manual_proj is not None:
                     projected_point = manual_proj
-                else:
-                    _, _, _, proj_y2 = proj_bbox
-                    projected_point = (kx, proj_y2)
 
                 depth_metric = OffsideLineComputer.compute_depth_metric(
                     projected_point[0],
@@ -509,15 +500,7 @@ class OffsideJudge:
                     W
                 )
 
-                # projected_candidates.append(
-                #     (
-                #         manual_kp,                 # original keypoint
-                #         projected_point,    # projected ground point
-                #         proj_y
-                #     )
-                # )
                 det["offside_keypoint"] = manual_kp
-                # if det.get("offside_proj_point") is None:
                 det["offside_proj_point"] = projected_point
                 det["manual_offside_proj"] = projected_point
 
@@ -617,7 +600,9 @@ class OffsideJudge:
                 projected_candidates = []
                 for kp in kps:
                     kx, ky = kp
-                    projected_point = (kx, det["bbox"][3])
+                    
+                    projected_point = KeypointUtils.project_keypoint_to_ground(det, vanishing_point_horiz, (kx, ky))
+                    
                     depth_metric = OffsideLineComputer.compute_depth_metric(
                         projected_point[0],
                         projected_point[1],
