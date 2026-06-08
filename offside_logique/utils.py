@@ -352,18 +352,11 @@ class KeypointUtils:
         det: dict
     ) -> Optional[Tuple[float, float]]:
 
-        # foot_kps = [
-        #     kp for name_id, kp in det["keypoints"].items()
-        #     if "ankle" in name_id or name_id in (15, 16)
-        # ]
-
         #! BUG: keypoints keys are sometimes names (str) and sometimes idx (int) !
         foot_kps = []
         for name_id, kp in det["keypoints"].items():
             if (isinstance(name_id, str) and "ankle" in name_id) or name_id in (15, 16):
                 foot_kps.append(kp)
-
-        print("foot kps ", foot_kps)
 
         if foot_kps:
             # return max(foot_kps, key=lambda p: p[1])
@@ -396,7 +389,6 @@ class KeypointUtils:
 
         # at x = tx, y on the VP line is:
         y_on_line = vy + slope * (tx - vx)
-        print("Y on line", y_on_line)
 
         return (int(tx), int(y_on_line))
 
@@ -405,7 +397,6 @@ class KeypointUtils:
         """Project defender keypoint to ground: lowest foot keypoint"""
 
         foot_keypoint = KeypointUtils.get_lowest_foot_keypoint(detection)
-        print("Lowest Foot keypoint:", foot_keypoint)
 
         if foot_keypoint is None:
             print(f"Warning: No foot keypoint found for detection {detection['bbox']}")

@@ -294,17 +294,7 @@ class OffsideLineComputer:
 
         kx, ky, last_det_idx  = last_kp[0], last_kp[1], last_kp[-1]
 
-        # default bbox
-        # TODO: replace by lowest foot keypoint when available, otherwise fallback on bbox
-        # proj_bbox = detections[last_det_idx]["bbox"]
-        # # bottom of bbox
-        # _, _, _, proj_y2 = proj_bbox
-        # # horizontal projected ground point
-        # projected_point = (kx, proj_y2)
-
-        print(detections[last_det_idx], vph, (kx, ky))
         projected_point = KeypointUtils.project_keypoint_to_ground(detections[last_det_idx], vph, (kx, ky)) 
-        print("Projected point for last defender:", projected_point)
 
         # if manually dragged kp -> find matching bbox
         if manual_last_defender_kp is not None:
@@ -324,11 +314,6 @@ class OffsideLineComputer:
 
                     break
             
-            # # bottom of bbox
-            # _, _, _, proj_y2 = proj_bbox
-            # # horizontal projected ground point
-            # projected_point = (kx, proj_y2)
-
         if manual_last_defender_proj is not None:
             projected_point = manual_last_defender_proj
     
@@ -337,7 +322,6 @@ class OffsideLineComputer:
         # -------------------------------------------------
         # OFFSIDE LINE NOW USES PROJECTED POINT
         # -------------------------------------------------
-        # if projected_point is None
         offside_line = GeometryUtils.extend_line_to_frame(
             vp,
             projected_point,
@@ -629,10 +613,9 @@ class OffsideJudge:
                 projected_candidates = []
                 for kp in kps:
                     kx, ky = kp
-                    # projected_point = (kx, det["bbox"][3])
+                    
                     projected_point = KeypointUtils.project_keypoint_to_ground(det, vanishing_point_horiz, (kx, ky))
-                    print("Projected point for attacker:", projected_point)
-
+                    
                     depth_metric = OffsideLineComputer.compute_depth_metric(
                         projected_point[0],
                         projected_point[1],
