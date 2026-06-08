@@ -481,7 +481,6 @@ class OffsideJudge:
 
                 #! to be optimised, loops even if not needed
                 # Find correct bbox for projection (important when switching players)
-                # proj_bbox = det["bbox"]
                 for other_det, other_lbl in zip(detections, team_labels):
                     if other_lbl != attacking_team:
                         continue
@@ -493,10 +492,6 @@ class OffsideJudge:
                 
                 if manual_proj is not None:
                     projected_point = manual_proj
-                # else:
-                #     # _, _, _, proj_y2 = proj_bbox
-                #     # projected_point = (kx, proj_y2)
-                #     projected_point = KeypointUtils.project_defender_keypoint_to_ground(det, vanishing_point_horiz, manual_kp)
 
                 depth_metric = OffsideLineComputer.compute_depth_metric(
                     projected_point[0],
@@ -505,15 +500,7 @@ class OffsideJudge:
                     W
                 )
 
-                # projected_candidates.append(
-                #     (
-                #         manual_kp,                 # original keypoint
-                #         projected_point,    # projected ground point
-                #         proj_y
-                #     )
-                # )
                 det["offside_keypoint"] = manual_kp
-                # if det.get("offside_proj_point") is None:
                 det["offside_proj_point"] = projected_point
                 det["manual_offside_proj"] = projected_point
 
