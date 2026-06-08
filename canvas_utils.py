@@ -231,7 +231,6 @@ def on_mouse_down(app, e):
 
         return
     
-    #!dikra: STEP5: assignment review, click bbox to change color
     if app.current_step == 5:
         # Iterate through all detections to see if we clicked inside one
         for i, det in enumerate(app.state["detections"]):
@@ -239,7 +238,8 @@ def on_mouse_down(app, e):
                 # Toggle the label: 0 becomes 1, 1 becomes 0
                 current_label = app.state["team_labels"][i]
                 app.state["team_labels"][i] = 1 - current_label
-                
+
+                #! bug here !            
                 # Since the team changed, the offside line might move!
                 app.recompute_offside()
                 

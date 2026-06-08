@@ -444,6 +444,7 @@ class OffsideApp:
         self.run_detection()
         self.show_step()
         self.manual_last_defender_kp = None
+        self.manual_last_defender_proj = None
         self.selected_kp = None
 
     def delete_selected_roi(self):
@@ -933,6 +934,9 @@ class OffsideApp:
                 self.state["attack_info"]["direction"] = raw_direction
 
             self._apply_mitemp_to_attack_info(self.state["attack_info"])
+            #reset manual last def proj
+            self.manual_last_defender_kp = None
+            self.manual_last_defender_proj = None
             self.recompute_offside()
             # self.run_offside()
 

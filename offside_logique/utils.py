@@ -3,6 +3,7 @@ Utility functions for Offside Detection System
 """
 
 import cv2
+from matplotlib.pylab import det
 import numpy as np
 from typing import Tuple, Optional
 from .config import OFFSIDE_KP_IDX
@@ -344,3 +345,74 @@ class KeypointUtils:
             if kc >= conf_threshold:
                 offside_kps[name] = (float(kx), float(ky))
         return offside_kps
+
+
+    @staticmethod
+    def get_lowest_foot_keypoint(
+        det: dict
+    ) -> Optional[Tuple[float, float]]:
+
+        # foot_kps = [
+        #     kp for name_id, kp in det["keypoints"].items()
+        #     if "ankle" in name_id or name_id in (15, 16)
+        # ]
+
+        #! BUG: keypoints keys are sometimes names (str) and sometimes idx (int) !
+        foot_kps = []
+        for name_id, kp in det["keypoints"].items():
+            if (isinstance(name_id, str) and "ankle" in name_id) or name_id in (15, 16):
+                foot_kps.append(kp)
+
+        print("foot kps ", foot_kps)
+
+        if foot_kps:
+            # return max(foot_kps, key=lambda p: p[1])
+            return max(foot_kps, key=lambda p: p[1]) + (0, 10)
+
+        return None
+    
+    @staticmethod
+    def project_point_to_vp_line(
+        foot_keypoint: Tuple[float, float],
+        vp: Tuple[float, float],
+        target_keypoint: Tuple[float, float]
+    ) -> Tuple[float, float]:
+        
+        # return projected_point
+        fx, fy = foot_keypoint
+        vx, vy = vp
+        tx, ty = target_keypoint
+
+        # VP line direction
+        dx = fx - vx
+        dy = fy - vy
+
+        if abs(dx) < 1e-6:
+            # VP line is vertical — projection is just (vx, ty)
+            return (int(vx), int(ty))
+
+        # slope of VP line through foot
+        slope = dy / dx
+
+        # at x = tx, y on the VP line is:
+        y_on_line = vy + slope * (tx - vx)
+        print("Y on line", y_on_line)
+
+        return (int(tx), int(y_on_line))
+
+    @staticmethod
+    def project_keypoint_to_ground(detection: dict, vp: Tuple[float, float], target_keypoint: Tuple[float, float]) -> Optional[Tuple[float, float]]:
+        """Project defender keypoint to ground: lowest foot keypoint"""
+
+        foot_keypoint = KeypointUtils.get_lowest_foot_keypoint(detection)
+        print("Lowest Foot keypoint:", foot_keypoint)
+
+        if foot_keypoint is None:
+            print(f"Warning: No foot keypoint found for detection {detection['bbox']}")
+            return None
+
+        #! TEMPORARY: ADDING A FEW PIXELS TO ANKLE KEYPOINY, UNTIL WE HAVE A MODEL THAT PREDICTS TOES 
+        foot_keypoint = (foot_keypoint[0], foot_keypoint[1] + 8) 
+
+        projected_point = KeypointUtils.project_point_to_vp_line(foot_keypoint, vp, target_keypoint)
+        return projected_point
