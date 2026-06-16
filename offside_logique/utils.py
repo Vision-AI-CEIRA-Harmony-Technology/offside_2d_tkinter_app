@@ -399,11 +399,21 @@ class KeypointUtils:
         foot_keypoint = KeypointUtils.get_lowest_foot_keypoint(detection)
 
         if foot_keypoint is None:
-            print(f"Warning: No foot keypoint found for detection {detection['bbox']}")
-            return None
+            # No foot keypoint available — fallback to bbox bottom projection.
+            # Use the target x (keypoint x) and the bottom y of the bbox as ground point.
+            # This avoids returning None which caused TypeError when callers
+            # attempted to subscript the projection.
+            bbox = detection.get("bbox", None)
+            if bbox is not None:
+                x1, y1, x2, y2 = bbox
+                projected_point = (float(target_keypoint[0]), float(y2))
+                return projected_point
 
-        #! TEMPORARY: ADDING A FEW PIXELS TO ANKLE KEYPOINY, UNTIL WE HAVE A MODEL THAT PREDICTS TOES 
-        foot_keypoint = (foot_keypoint[0], foot_keypoint[1] + 8) 
+            # As a last resort, return the target keypoint itself.
+            return (float(target_keypoint[0]), float(target_keypoint[1]))
+
+        # TEMPORARY: add a few pixels to ankle y until we have toes prediction
+        foot_keypoint = (foot_keypoint[0], foot_keypoint[1] + 8)
 
         projected_point = KeypointUtils.project_point_to_vp_line(foot_keypoint, vp, target_keypoint)
         return projected_point

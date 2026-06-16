@@ -80,10 +80,17 @@ class KeypointVisualizer:
             okx, oky = det["offside_keypoint"]
             color = OFFSIDE_COLOR if judgement == "OFFSIDE" else ONSIDE_COLOR
 
+            # Prefer nose x for triangle horizontal position, fall back to offside keypoint or bbox center
+            nose_kp = det.get("keypoints", {}).get("nose") if isinstance(det.get("keypoints"), dict) else None
+            if nose_kp is None:
+                # sometimes keys are integers (COCO indices)
+                nose_kp = det.get("keypoints", {}).get(0) if isinstance(det.get("keypoints"), dict) else None
+            tri_cx = int(nose_kp[0]) if nose_kp is not None else int(bmx)
+            tri_pts = np.array([[tri_cx - 8, int(bmy) - 12], [tri_cx + 8, int(bmy) - 12], [tri_cx, int(bmy) - 2]])
             if judgement == "OFFSIDE":
-                cv2.fillPoly(out, [np.array([[int(bmx) - 8, int(bmy) - 12],[int(bmx) + 8, int(bmy) - 12],[int(bmx), int(bmy) - 2]])], OFFSIDE_COLOR)
+                cv2.fillPoly(out, [tri_pts], OFFSIDE_COLOR)
             else:
-                cv2.fillPoly(out, [np.array([[int(bmx) - 8, int(bmy) - 12],[int(bmx) + 8, int(bmy) - 12],[int(bmx), int(bmy) - 2]])], ONSIDE_COLOR)
+                cv2.fillPoly(out, [tri_pts], ONSIDE_COLOR)
             
             # keypoint
             cv2.circle(
@@ -248,11 +255,17 @@ class KeypointVisualizer:
                         lmx = int((x1 + x2) / 2)
                         lmy = int(y1)
 
-                        cv2.fillPoly(out, [np.array([
-                            [lmx - 8, lmy - 12],  
-                            [lmx + 8, lmy - 12],  
-                            [lmx,     lmy - 2]    
-                        ])], LAST_DEF_KEYPOINT_COLOR)
+                        # Use nose x for last-defender marker when available
+                        nose_kp = det.get("keypoints", {}).get("nose") if isinstance(det.get("keypoints"), dict) else None
+                        if nose_kp is None:
+                            nose_kp = det.get("keypoints", {}).get(0) if isinstance(det.get("keypoints"), dict) else None
+                        tri_cx = int(nose_kp[0]) if nose_kp is not None else int(lmx)
+                        tri_pts = np.array([
+                            [tri_cx - 8, lmy - 12],
+                            [tri_cx + 8, lmy - 12],
+                            [tri_cx,     lmy - 2]
+                        ])
+                        cv2.fillPoly(out, [tri_pts], LAST_DEF_KEYPOINT_COLOR)
                         break
                         
         if last_kp is not None and projected_point is not None:
