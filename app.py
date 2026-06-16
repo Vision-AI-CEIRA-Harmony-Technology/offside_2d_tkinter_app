@@ -202,17 +202,10 @@ class OffsideApp:
 
 
     def toggle_sidebar(self):
-
         if self.sidebar_visible:
-
             self.sidebar.pack_forget()
-
-            self.sidebar_handle.config(text=">>")
-
             self.sidebar_visible = False
-
         else:
-
             self.sidebar.pack(
                 side="left",
                 fill="y",
@@ -220,10 +213,23 @@ class OffsideApp:
                 pady=10,
                 before=self.workspace
             )
-
-            self.sidebar_handle.config(text="<<")
-
             self.sidebar_visible = True
+    
+    def on_mouse_motion(self, e):
+        """Show sidebar when mouse moves to left edge (x < 30), hide when leaving."""
+        if e.x_root < 30 and not self.sidebar_visible:
+            self.sidebar_visible = True
+            self.sidebar.pack(
+                side="left",
+                fill="y",
+                padx=(15, 5),
+                pady=10,
+                before=self.workspace
+            )
+        elif e.x_root > 320 and self.sidebar_visible:
+            # Hide when mouse moves far enough right (sidebar width ~250 + padding)
+            self.sidebar.pack_forget()
+            self.sidebar_visible = False
     def update_sidebar(self):
         if not hasattr(self, "left_team_label"):
             return

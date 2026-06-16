@@ -137,24 +137,7 @@ def build_app_ui(root, app):
     content = ttk.Frame(main, style="Dark.TFrame")
     content.pack(fill="both", expand=True)
     app.content_container = content
-    app.sidebar_handle = tk.Label(
-        main,
-        text=">>",
-        bg="#111827",
-        fg="white",
-        font=("Segoe UI", 14, "bold"),
-        cursor="hand2"
-    )
-    app.sidebar_handle.place(
-        x=10,
-        y=45
-    )
-
-    app.sidebar_handle.bind(
-        "<Button-1>",
-        lambda e: app.toggle_sidebar()
-    )
-    app.sidebar_handle.lift()
+    # Sidebar handle removed — auto-show on left edge mouse movement instead
     # Sidebar
     app.sidebar = ttk.Frame(
         content,
@@ -481,6 +464,9 @@ def build_app_ui(root, app):
     canvas.bind("<MouseWheel>", lambda e: app.on_mouse_scroll(e))
     canvas.bind("<Button-4>", lambda e: app.on_mouse_scroll(e))
     canvas.bind("<Button-5>", lambda e: app.on_mouse_scroll(e))
+    
+    # Bind mouse motion to detect left edge for sidebar auto-reveal
+    root.bind("<Motion>", lambda e: app.on_mouse_motion(e))
 
     def handle_delete(event):
 
